@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ember Conquest</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #222;
+            color: white;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .game-container {
+            display: flex;
+            gap: 20px;
+            margin: 0 auto;
+        }
+        
+        canvas {
+            display: block;
+            border: 2px solid #444;
+        }
+        
+        .controls {
+            text-align: center;
+            max-width: 1000px;
+            margin: 10px auto;
+        }
+        
+        button {
+            background-color: #ff5722;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        
+        button:hover {
+            background-color: #ff7043;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            max-width: 1000px;
+            margin: 10px auto;
+        }
+        
+        .right-panel {
+            width: 250px;
+            background-color: #333;
+            border: 2px solid #444;
+            padding: 15px;
+            max-height: 800px;
+            overflow-y: auto;
+        }
+        
+        .stat-group {
+            border-bottom: 1px solid #555;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .stat-title {
+            font-weight: bold;
+            color: #ff9800;
+            margin-bottom: 5px;
+        }
+        
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="stats">
+        <div>Fire Power: <span id="firePower">10</span></div>
+        <div>Fire Territory: <span id="fireTerritory">1%</span></div>
+        <div>Ice Territory: <span id="iceTerritory">0%</span></div>
+    </div>
+    
+    <div class="game-container">
+        <canvas id="gameCanvas" width="1000" height="800"></canvas>
+        
+        <div class="right-panel">
+            <div class="stat-group">
+                <div class="stat-title">Game Values</div>
+                <div class="stat-item">
+                    <div>Fire Sources:</div>
+                    <div id="statFireSources">0</div>
+                </div>
+                <div class="stat-item">
+                    <div>Generators:</div>
+                    <div id="statGenerators">0</div>
+                </div>
+                <div class="stat-item">
+                    <div>Ice Sources:</div>
+                    <div id="statIceSources">0</div>
+                </div>
+                <div class="stat-item">
+                    <div>Speed Boost:</div>
+                    <div id="statSpeedBoost">Off</div>
+                </div>
+                <div class="stat-item">
+                    <div>Game Tick:</div>
+                    <div id="statTick">0</div>
+                </div>
+                <div class="stat-item">
+                    <div>Selected:</div>
+                    <div id="statSelected">Fire Source</div>
+                </div>
+            </div>
+            
+            <div class="stat-group">
+                <div class="stat-title">Multipliers</div>
+                <div class="stat-item">
+                    <div>Fire Spread:</div>
+                    <div>0.8x</div>
+                </div>
+                <div class="stat-item">
+                    <div>Fire Source Boost:</div>
+                    <div>+20% per source (no cap)</div>
+                </div>
+                <div class="stat-item">
+                    <div>Ice Spread:</div>
+                    <div>0.85x</div>
+                </div>
+                <div class="stat-item">
+                    <div>Combat (Fire):</div>
+                    <div>0.9x</div>
+                </div>
+                <div class="stat-item">
+                    <div>Combat (Ice):</div>
+                    <div>1.1x</div>
+                </div>
+            </div>
+            
+            <div class="stat-group">
+                <div class="stat-title">Power Generation</div>
+                <div class="stat-item">
+                    <div>From Territory:</div>
+                    <div id="statTerritoryPower">0.000</div>
+                </div>
+                <div class="stat-item">
+                    <div>From Generators:</div>
+                    <div id="statGeneratorPower">0.000</div>
+                </div>
+                <div class="stat-item">
+                    <div>Total per Tick:</div>
+                    <div id="statTotalPower">0.000</div>
+                </div>
+            </div>
+            
+            <div class="stat-group">
+                <div class="stat-title">Speed Boost</div>
+                <div class="stat-item">
+                    <div>Status:</div>
+                    <div id="statSpeedBoostStatus">Off</div>
+                </div>
+                <div class="stat-item">
+                    <div>Level:</div>
+                    <div id="statSpeedBoostLevel">0</div>
+                </div>
+                <div class="stat-item">
+                    <div>Multiplier:</div>
+                    <div id="statSpeedBoostMultiplier">1.0x</div>
+                </div>
+                <div class="stat-item">
+                    <div>Per Level:</div>
+                    <div>+30% (uncapped)</div>
+                </div>
+            </div>
+            
+            <div class="stat-group">
+                <div class="stat-title">Heat Wave</div>
+                <div class="stat-item">
+                    <div>Fire Boost:</div>
+                    <div>+30%</div>
+                </div>
+                <div class="stat-item">
+                    <div>Ice Reduction:</div>
+                    <div>-20%</div>
+                </div>
+                <div class="stat-item">
+                    <div>Cost:</div>
+                    <div>15</div>
+                </div>
+                <div class="stat-item">
+                    <div>Active:</div>
+                    <div id="heatWaveActive">No</div>
+                </div>
+            </div>
+            
+            <div class="stat-group">
+                <div class="stat-title">Heat Effects</div>
+                <div class="stat-item">
+                    <div>Retraction Threshold:</div>
+                    <div>2+ fire sources</div>
+                </div>
+                <div class="stat-item">
+                    <div>Effect Radius:</div>
+                    <div>15 cells</div>
+                </div>
+                <div class="stat-item">
+                    <div>Base Chance:</div>
+                    <div>10%</div>
+                </div>
+                <div class="stat-item">
+                    <div>Per Source:</div>
+                    <div>+5%</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="controls">
+        <button id="placeFire">Place Fire Source (Cost: 5)</button>
+        <button id="placeGenerator">Place Generator (Cost: 10)</button>
+        <button id="speedBoost">Speed Boost (Cost: 10)</button>
+        <button id="heatWave">Heat Wave (Cost: 15)</button>
+        <button id="restart">Restart Game</button>
+    </div>
+
+    <script>
+        // Game constants
+        const GRID_SIZE = 2; // Tiny grid cells for massive map
+        const FIRE_COLOR = '#ff5722';
+        const ICE_COLOR = '#00bcd4';
+        const NEUTRAL_COLOR = '#555';
+        const FIRE_SOURCE_COST = 5;
+        const GENERATOR_COST = 10;
+        const SPEED_BOOST_COST = 10;
+        const HEAT_WAVE_COST = 15;
+        const MAX_EXPANSION_RADIUS = 30; // Maximum radius for expansion from a source
+        const HEAT_CONCENTRATION_RADIUS = 15; // Radius for checking nearby fire sources
+        const ICE_RETRACTION_THRESHOLD = 2; // Number of nearby fire sources to cause ice retraction
+        
+        // Game state
+        let canvas = document.getElementById('gameCanvas');
+        let ctx = canvas.getContext('2d');
+        let grid = [];
+        let firePower = 20;
+        let fireSourcePositions = [];
+        let fireGeneratorPositions = [];
+        let iceSourcePositions = [];
+        let isFireSpeedBoosted = false;
+        let speedBoostTimer = 0;
+        let speedBoostLevel = 0; // Track how many speed boosts are active
+        let heatWaveActive = false; // Track if heat wave was recently used
+        let heatWaveTimer = 0; // Timer to show heat wave as active briefly
+        let gameOver = false;
+        let gameWon = false;
+        let tickCounter = 0;
+        let gameSpeed = 10; // Frames between updates (higher = slower)
+        let frameCounter = 0;
+        let selectedStructure = 'fire'; // Default selected structure
+        
+        // Grid dimensions
+        const COLS = Math.floor(canvas.width / GRID_SIZE);
+        const ROWS = Math.floor(canvas.height / GRID_SIZE);
+        
+        // Dirty cell tracking for optimized drawing
+        let dirtyCells = [];
+        function initDirtyCells() {
+            dirtyCells = [];
+            for (let y = 0; y < ROWS; y++) {
+                let row = [];
+                for (let x = 0; x < COLS; x++) {
+                    row.push(true); // Mark all as dirty initially
+                }
+                dirtyCells.push(row);
+            }
+        }
+        
+        // Mark a cell as dirty
+        function markDirty(x, y) {
+            if (x >= 0 && x < COLS && y >= 0 && y < ROWS) {
+                dirtyCells[y][x] = true;
+            }
+        }
+        
+        // Mark all cells as dirty
+        function markAllDirty() {
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    dirtyCells[y][x] = true;
+                }
+            }
+        }
+        
+        // Initialize the game
+        function initGame() {
+            console.log("Initializing game");
+            console.log(`Map size: ${COLS}x${ROWS} cells`);
+            
+            // Create empty grid
+            grid = [];
+            for (let y = 0; y < ROWS; y++) {
+                let row = [];
+                for (let x = 0; x < COLS; x++) {
+                    row.push({
+                        type: 'neutral',
+                        strength: 0,
+                        source: false,
+                        generator: false
+                    });
+                }
+                grid.push(row);
+            }
+            
+            initDirtyCells();
+            
+            // Reset game state
+            firePower = 20; // Increased starting fire power for bigger map
+            fireSourcePositions = [];
+            fireGeneratorPositions = [];
+            iceSourcePositions = [];
+            isFireSpeedBoosted = false;
+            speedBoostTimer = 0;
+            speedBoostLevel = 0;
+            heatWaveActive = false;
+            heatWaveTimer = 0;
+            gameOver = false;
+            gameWon = false;
+            tickCounter = 0;
+            frameCounter = 0;
+            
+            // Place initial player fire source
+            const centerX = Math.floor(COLS / 2);
+            const centerY = Math.floor(ROWS / 2);
+            placeFireSource(centerX, centerY);
+            
+            // Add a small area of fire cells around the center
+            const fireRadius = 3; // Slightly larger starting area
+            for (let y = centerY - fireRadius; y <= centerY + fireRadius; y++) {
+                for (let x = centerX - fireRadius; x <= centerX + fireRadius; x++) {
+                    if (x >= 0 && x < COLS && y >= 0 && y < ROWS &&
+                        (x !== centerX || y !== centerY) && // Skip the center as it's already a fire source
+                        Math.abs(x - centerX) + Math.abs(y - centerY) <= fireRadius) { // Diamond shape
+                        grid[y][x] = { type: 'fire', strength: 60, source: false, generator: false };
+                        markDirty(x, y);
+                    }
+                }
+            }
+            
+            // Update UI
+            updateStats();
+            markAllDirty(); // Ensure all cells are marked dirty for the first draw
+        }
+        
+        // Place a fire source
+        function placeFireSource(x, y) {
+            if (x < 0 || x >= COLS || y < 0 || y >= ROWS) return;
+            
+            grid[y][x] = { type: 'fire', strength: 100, source: true, generator: false };
+            fireSourcePositions.push({ x, y });
+            markDirty(x, y);
+            // Invalidate caches
+            fireSourcesCountCache = {};
+            fireRadiusCache = {};
+            lastFireSourcesLength = 0;
+        }
+        
+        // Place a fire generator
+        function placeFireGenerator(x, y) {
+            if (x < 0 || x >= COLS || y < 0 || y >= ROWS) return;
+            
+            grid[y][x] = { type: 'fire', strength: 100, source: false, generator: true };
+            fireGeneratorPositions.push({ x, y });
+            markDirty(x, y);
+        }
+        
+        // Place an ice source
+        function placeIceSource(x, y) {
+            if (x < 0 || x >= COLS || y < 0 || y >= ROWS) return;
+            
+            grid[y][x] = { type: 'ice', strength: 100, source: true, generator: false };
+            iceSourcePositions.push({ x, y });
+            markDirty(x, y);
+        }
+        
+        // Update game state
+        function updateGame() {
+            if (gameOver) return;
+            
+            // Slow down the game by only updating every few frames
+            frameCounter++;
+            if (frameCounter < gameSpeed) {
+                return;
+            }
+            frameCounter = 0;
+            
+            tickCounter++;
+            
+            // Add initial ice sources at the corners much later
+            if (tickCounter === 50) {
+                // Only corners to leave more neutral space
+                placeIceSource(5, 5);
+            }
+            if (tickCounter === 70) {
+                placeIceSource(COLS - 6, ROWS - 6);
+            }
+            if (tickCounter === 90) {
+                placeIceSource(COLS - 6, 5);
+            }
+            if (tickCounter === 110) {
+                placeIceSource(5, ROWS - 6);
+            }
+            
+            // Generate fire power from generators
+            fireGeneratorPositions.forEach(pos => {
+                // Each generator produces 0.05 power per tick
+                firePower += 0.05;
+            });
+            
+            // Update fire power from territory
+            let fireCount = countTerritory('fire');
+            firePower += 0.15 * fireCount / 100; // Increased for more territory power
+            
+            // Speed boost timer
+            if (isFireSpeedBoosted) {
+                speedBoostTimer--;
+                if (speedBoostTimer <= 0) {
+                    speedBoostLevel = Math.max(0, speedBoostLevel - 1); // Decrease boost level by 1
+                    if (speedBoostLevel > 0) {
+                        // If we still have stacked boosts, reset the timer
+                        speedBoostTimer = 70;
+                    } else {
+                        isFireSpeedBoosted = false;
+                    }
+                }
+            }
+            
+            // Heat wave timer
+            if (heatWaveActive) {
+                heatWaveTimer--;
+                if (heatWaveTimer <= 0) {
+                    heatWaveActive = false;
+                }
+            }
+            
+            // Process heat concentration effect on ice
+            applyHeatConcentrationEffect();
+            
+            // Spread fire and ice
+            spreadElements();
+            
+            // Check win/lose conditions - only after ice has had a chance to appear
+            if (tickCounter > 150) {
+                checkGameStatus();
+            }
+            
+            // Update UI
+            updateStats();
+        }
+        
+        // Spread fire and ice across the grid
+        function spreadElements() {
+            // Create a copy of the grid to read from while modifying the original
+            let oldGrid = grid.map(row => row.map(cell => ({ ...cell })));
+            
+            // Helper function for spreading
+            function spreadElement(x, y, type, strength, isSource) {
+                const neighbors = [
+                    { x: x-1, y: y },
+                    { x: x+1, y: y },
+                    { x: x, y: y-1 },
+                    { x: x, y: y+1 }
+                ];
+                
+                neighbors.forEach(neighbor => {
+                    if (neighbor.x < 0 || neighbor.x >= COLS || neighbor.y < 0 || neighbor.y >= ROWS) 
+                        return;
+                    
+                    // Check if we're beyond the maximum distance from any source - ONLY FOR FIRE
+                    if (type === 'fire' && !isSource) {
+                        // Check fire expansion distance faster using a cache of pre-computed distances
+                        // We only need to re-compute this when new fire sources are added
+                        if (!isWithinFireRadius(neighbor.x, neighbor.y)) return;
+                    }
+                    
+                    // No radius limit for ice - removed the ice radius check
+                    
+                    let currentCell = grid[neighbor.y][neighbor.x];
+                    let newStrength;
+                    
+                    if (type === 'fire') {
+                        // Base fire spread (slower)
+                        newStrength = strength * 0.6; // Was 0.8, now slower
+                        
+                        // Boost from nearby fire sources
+                        const nearbySources = countNearbyFireSources(neighbor.x, neighbor.y);
+                        if (nearbySources > 0) {
+                            // Significantly boost fire spread by 20% per nearby source with no cap
+                            const sourceBoost = nearbySources * 0.2; // Doubled from 10% to 20%
+                            newStrength *= (1 + sourceBoost);
+                            
+                            // Visual debugging - if we have a significant boost, strengthen more
+                            if (sourceBoost > 0.4) { // More than 2 fire sources
+                                grid[neighbor.y][neighbor.x].strength = Math.min(100, 
+                                    grid[neighbor.y][neighbor.x].strength + 5); // Extra strength boost
+                            }
+                        }
+                        
+                        // Apply speed boost if active (enhanced effect)
+                        if (isFireSpeedBoosted) {
+                            // Boost amount increases with each stacked boost
+                            // Increased base boost from 20% to 30% per level
+                            const boostMultiplier = 1 + (0.3 * speedBoostLevel); // 1.3x, 1.6x, 1.9x, etc.
+                            newStrength *= boostMultiplier;
+                            
+                            // Apply bonus spread but avoid recursive calls that can cause stack overflow
+                            // Instead of calling spreadElement recursively, mark cells for extra processing
+                            if (Math.random() < 0.3) { // 30% chance to give an extra spread attempt
+                                // Just boost the strength further instead of recursive spreading
+                                newStrength *= 1.3;
+                            }
+                        }
+                    } else {
+                        newStrength = strength * 0.7; // Was 0.85, now slower
+                    }
+                    
+                    // Random chance not to spread to allow for more neutral territory
+                    if (Math.random() < 0.2) return; // 20% chance to skip spreading
+                    
+                    if (currentCell.type === 'neutral') {
+                        grid[neighbor.y][neighbor.x] = { 
+                            type, 
+                            strength: newStrength, 
+                            source: false, 
+                            generator: false 
+                        };
+                        markDirty(neighbor.x, neighbor.y);
+                    } else if (currentCell.type !== type) {
+                        // Don't overwrite sources or generators
+                        if (currentCell.source || currentCell.generator) {
+                            return;
+                        }
+                        
+                        // Combat between fire and ice
+                        let fireMultiplier = type === 'fire' ? 0.85 : 1.15; // Ice is now slightly stronger in combat
+                        let result = currentCell.strength - (newStrength * fireMultiplier);
+                        
+                        if (result <= 0) {
+                            // Element overtakes the other
+                            grid[neighbor.y][neighbor.x] = { 
+                                type, 
+                                strength: Math.abs(result), 
+                                source: false, 
+                                generator: false 
+                            };
+                            markDirty(neighbor.x, neighbor.y);
+                        } else {
+                            // Element weakened but still present
+                            grid[neighbor.y][neighbor.x].strength = result;
+                            markDirty(neighbor.x, neighbor.y);
+                        }
+                    } else {
+                        // Same element, strengthen it
+                        if (!currentCell.source && !currentCell.generator) {
+                            let oldStrength = currentCell.strength;
+                            grid[neighbor.y][neighbor.x].strength = Math.min(100, currentCell.strength + newStrength * 0.1);
+                            if (grid[neighbor.y][neighbor.x].strength !== oldStrength) {
+                                markDirty(neighbor.x, neighbor.y);
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Reduce number of processed cells by only processing cells with significant strength
+            const significantThreshold = 20; // Only process cells with strength above this
+            
+            // Process elements in random order to avoid directional bias
+            const allCells = [];
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    const cell = oldGrid[y][x];
+                    if (cell.type !== 'neutral' && cell.strength > significantThreshold) {
+                        allCells.push({
+                            x, y, 
+                            type: cell.type, 
+                            strength: cell.strength,
+                            isSource: cell.source
+                        });
+                    }
+                }
+            }
+            
+            // Limit the number of cells processed per tick for consistent performance
+            const maxCellsPerTick = 100000; // Increased from 1000 to allow more consistent spread in late game
+            let cellsToProcess = allCells;
+            
+            for (let i = allCells.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [allCells[i], allCells[j]] = [allCells[j], allCells[i]];
+            }
+            
+            // Process all cells
+            cellsToProcess.forEach(cell => {
+                spreadElement(cell.x, cell.y, cell.type, cell.strength, cell.isSource);
+            });
+            
+            // Ensure source cells maintain maximum strength
+            fireSourcePositions.forEach(pos => {
+                grid[pos.y][pos.x] = { type: 'fire', strength: 100, source: true, generator: false };
+                markDirty(pos.x, pos.y);
+            });
+            
+            fireGeneratorPositions.forEach(pos => {
+                grid[pos.y][pos.x] = { type: 'fire', strength: 100, source: false, generator: true };
+                markDirty(pos.x, pos.y);
+            });
+            
+            iceSourcePositions.forEach(pos => {
+                grid[pos.y][pos.x] = { type: 'ice', strength: 100, source: true, generator: false };
+                markDirty(pos.x, pos.y);
+            });
+        }
+        
+        // Create a cached check for fire radius to avoid recalculating every time
+        let fireRadiusCache = {}; // Maps grid positions to boolean (within radius)
+        let lastFireSourcesLength = 0; // Track if fire sources have changed
+        
+        function isWithinFireRadius(x, y) {
+            // Only rebuild cache if fire sources have changed
+            if (lastFireSourcesLength !== fireSourcePositions.length) {
+                rebuildFireRadiusCache();
+            }
+            
+            const key = `${x},${y}`;
+            
+            // Return cached result if available
+            if (fireRadiusCache.hasOwnProperty(key)) {
+                return fireRadiusCache[key];
+            }
+            
+            // Fall back to calculation if not in cache (shouldn't happen after cache is built)
+            for (const source of fireSourcePositions) {
+                const distance = Math.sqrt(
+                    Math.pow(x - source.x, 2) + 
+                    Math.pow(y - source.y, 2)
+                );
+                if (distance <= MAX_EXPANSION_RADIUS) {
+                    fireRadiusCache[key] = true;
+                    return true;
+                }
+            }
+            
+            fireRadiusCache[key] = false;
+            return false;
+        }
+        
+        // Rebuild the fire radius cache when sources change
+        function rebuildFireRadiusCache() {
+            fireRadiusCache = {};
+            
+            // Only calculate for cells that could possibly be within range
+            for (const source of fireSourcePositions) {
+                const startX = Math.max(0, source.x - MAX_EXPANSION_RADIUS - 1);
+                const endX = Math.min(COLS - 1, source.x + MAX_EXPANSION_RADIUS + 1);
+                const startY = Math.max(0, source.y - MAX_EXPANSION_RADIUS - 1);
+                const endY = Math.min(ROWS - 1, source.y + MAX_EXPANSION_RADIUS + 1);
+                
+                for (let y = startY; y <= endY; y++) {
+                    for (let x = startX; x <= endX; x++) {
+                        const distance = Math.sqrt(
+                            Math.pow(x - source.x, 2) + 
+                            Math.pow(y - source.y, 2)
+                        );
+                        
+                        if (distance <= MAX_EXPANSION_RADIUS) {
+                            fireRadiusCache[`${x},${y}`] = true;
+                        }
+                    }
+                }
+            }
+            
+            lastFireSourcesLength = fireSourcePositions.length;
+        }
+        
+        // Apply heat concentration effect that causes ice to retract
+        function applyHeatConcentrationEffect() {
+            const cellsToConvert = [];
+            const maxConversionsPerTick = 500; // Limit conversions per tick for performance
+            let conversionsCount = 0;
+            
+            // Use a sampling approach to check only a portion of ice cells each tick
+            const iceCells = [];
+            
+            // Sample ice cells in a performance-friendly way
+            for (let y = 0; y < ROWS; y += 3) { // Skip rows for performance
+                for (let x = 0; x < COLS; x += 3) { // Skip columns for performance
+                    if (grid[y][x].type === 'ice' && !grid[y][x].source) {
+                        iceCells.push({x, y});
+                    }
+                }
+            }
+            
+            // Randomize which cells we check each tick
+            for (let i = Math.min(iceCells.length - 1, 300); i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [iceCells[i], iceCells[j]] = [iceCells[j], iceCells[i]];
+            }
+            
+            // Only process a subset of ice cells each tick
+            for (let i = 0; i < Math.min(iceCells.length, 300); i++) {
+                const {x, y} = iceCells[i];
+                
+                const nearbySources = countNearbyFireSources(x, y);
+                
+                // If there are enough nearby fire sources, mark cell for conversion
+                if (nearbySources >= ICE_RETRACTION_THRESHOLD) {
+                    // More fire sources = faster retraction
+                    const conversionChance = 0.1 + (nearbySources - ICE_RETRACTION_THRESHOLD) * 0.05;
+                    if (Math.random() < conversionChance) {
+                        cellsToConvert.push({x, y});
+                        conversionsCount++;
+                        if (conversionsCount >= maxConversionsPerTick) break;
+                    }
+                }
+            }
+            
+            // Then, convert the marked cells to neutral
+            cellsToConvert.forEach(cell => {
+                grid[cell.y][cell.x] = { 
+                    type: 'neutral', 
+                    strength: 0, 
+                    source: false, 
+                    generator: false 
+                };
+                markDirty(cell.x, cell.y);
+            });
+        }
+        
+        // Cache for nearby fire sources count
+        let fireSourcesCountCache = {};
+        
+        // Count the number of fire sources within the concentration radius
+        function countNearbyFireSources(x, y) {
+            const key = `${x},${y}`;
+            
+            // Return cached value if available and fire sources haven't changed
+            if (fireSourcesCountCache.hasOwnProperty(key) && lastFireSourcesLength === fireSourcePositions.length) {
+                return fireSourcesCountCache[key];
+            }
+            
+            let count = 0;
+            
+            for (const source of fireSourcePositions) {
+                const distance = Math.sqrt(
+                    Math.pow(x - source.x, 2) + 
+                    Math.pow(y - source.y, 2)
+                );
+                
+                if (distance <= HEAT_CONCENTRATION_RADIUS) {
+                    count++;
+                }
+            }
+            
+            // Cache the result
+            fireSourcesCountCache[key] = count;
+            return count;
+        }
+        
+        // Activate heat wave special ability
+        function activateHeatWave() {
+            if (firePower < HEAT_WAVE_COST) return;
+            
+            firePower -= HEAT_WAVE_COST;
+            
+            // Set heat wave as active for display
+            heatWaveActive = true;
+            heatWaveTimer = 10; // Show as active for 10 ticks
+            
+            // Strengthen all fire cells
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    if (grid[y][x].type === 'fire') {
+                        let oldStrength = grid[y][x].strength;
+                        grid[y][x].strength = Math.min(100, grid[y][x].strength * 1.3);
+                        if (grid[y][x].strength !== oldStrength) markDirty(x, y);
+                    } else if (grid[y][x].type === 'ice') {
+                        let oldStrength = grid[y][x].strength;
+                        grid[y][x].strength = Math.max(0, grid[y][x].strength * 0.8);
+                        if (grid[y][x].strength !== oldStrength) markDirty(x, y);
+                    }
+                }
+            }
+            
+            updateStats();
+        }
+        
+        // Activate speed boost ability
+        function activateSpeedBoost() {
+            if (firePower < SPEED_BOOST_COST) return;
+            
+            firePower -= SPEED_BOOST_COST;
+            isFireSpeedBoosted = true;
+            
+            // Increase boost level and extend timer
+            speedBoostLevel++;
+            speedBoostTimer = 70; // Reset timer when activated
+            
+            // No maximum boost level cap - removed for unlimited stacking
+            
+            updateStats();
+            markAllDirty(); // Visual effect for speed boost
+        }
+        
+        // Count territory percentage
+        function countTerritory(type) {
+            let count = 0;
+            const totalCells = ROWS * COLS;
+            
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    if (grid[y][x].type === type) {
+                        count++;
+                    }
+                }
+            }
+            
+            return Math.floor((count / totalCells) * 100);
+        }
+        
+        // Check game win/lose conditions
+        function checkGameStatus() {
+            const fireTerritory = countTerritory('fire');
+            const iceTerritory = countTerritory('ice');
+            
+            // Only check win conditions after the game has been running for a while
+            if (fireTerritory <= 0) {
+                gameOver = true;
+                gameWon = false;
+            } else if (iceTerritory >= 90) { // 90% threshold for ice win
+                gameOver = true;
+                gameWon = false;
+            } else if (fireTerritory >= 90) { // 90% threshold for fire win
+                gameOver = true;
+                gameWon = true;
+            }
+        }
+        
+        // Draw the game
+        function drawGame() {
+            // Only redraw dirty cells
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    if (!dirtyCells[y][x]) continue;
+                    const cell = grid[y][x];
+                    let color;
+                    if (cell.type === 'fire') {
+                        if (cell.source) {
+                            color = '#FFFF00';
+                        } else if (cell.generator) {
+                            color = '#FF6A00';
+                        } else {
+                            const r = 255;
+                            const g = Math.floor(87 + (170 - 87) * (cell.strength / 100));
+                            const b = Math.floor(34 + (0 - 34) * (cell.strength / 100));
+                            const nearbySources = countNearbyFireSources(x, y);
+                            if (nearbySources >= 3) {
+                                const densityBoost = Math.min(100, nearbySources * 10);
+                                const boostedG = Math.min(255, g + densityBoost);
+                                color = `rgb(${r}, ${boostedG}, ${b})`;
+                            } else {
+                                color = `rgb(${r}, ${g}, ${b})`;
+                            }
+                        }
+                    } else if (cell.type === 'ice') {
+                        if (cell.source) {
+                            color = '#00FFFF';
+                        } else {
+                            const r = Math.floor(0 + (100 - 0) * (1 - cell.strength / 100));
+                            const g = Math.floor(188 + (200 - 188) * (1 - cell.strength / 100));
+                            const b = Math.floor(212 + (255 - 212) * (1 - cell.strength / 100));
+                            color = `rgb(${r}, ${g}, ${b})`;
+                        }
+                    } else {
+                        color = NEUTRAL_COLOR;
+                    }
+                    ctx.fillStyle = color;
+                    ctx.fillRect(x * GRID_SIZE, y * GRID_SIZE, GRID_SIZE, GRID_SIZE);
+                    // Show heat concentration effect
+                    if (cell.type === 'ice' && !cell.source) {
+                        const nearbySources = countNearbyFireSources(x, y);
+                        if (nearbySources >= ICE_RETRACTION_THRESHOLD) {
+                            ctx.fillStyle = `rgba(255, 80, 0, ${0.1 * nearbySources})`;
+                            ctx.fillRect(x * GRID_SIZE, y * GRID_SIZE, GRID_SIZE, GRID_SIZE);
+                        }
+                    }
+                    // Add visual indication of speed boost
+                    if (cell.type === 'fire' && !cell.source && !cell.generator && isFireSpeedBoosted) {
+                        const pulseIntensity = 0.4 + (Math.sin(tickCounter * 0.2) * 0.2);
+                        const boostColor = `rgba(255, 255, 150, ${pulseIntensity * (speedBoostLevel * 0.15)})`;
+                        ctx.fillStyle = boostColor;
+                        ctx.fillRect(x * GRID_SIZE, y * GRID_SIZE, GRID_SIZE, GRID_SIZE);
+                    }
+                    dirtyCells[y][x] = false;
+                }
+            }
+            
+            // Draw source and generator indicators (larger circles)
+            for (const pos of fireSourcePositions) {
+                ctx.beginPath();
+                ctx.arc((pos.x + 0.5) * GRID_SIZE, (pos.y + 0.5) * GRID_SIZE, GRID_SIZE * 2, 0, Math.PI * 2);
+                ctx.strokeStyle = '#FFFFFF';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+            
+            for (const pos of fireGeneratorPositions) {
+                ctx.beginPath();
+                ctx.rect((pos.x - 1) * GRID_SIZE, (pos.y - 1) * GRID_SIZE, GRID_SIZE * 3, GRID_SIZE * 3);
+                ctx.strokeStyle = '#FFFFFF';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+            
+            for (const pos of iceSourcePositions) {
+                ctx.beginPath();
+                ctx.arc((pos.x + 0.5) * GRID_SIZE, (pos.y + 0.5) * GRID_SIZE, GRID_SIZE * 2, 0, Math.PI * 2);
+                ctx.strokeStyle = '#FFFFFF';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+            
+            // Draw expansion limits for visual reference (faded circles) - ONLY FOR FIRE SOURCES
+            for (const pos of fireSourcePositions) {
+                ctx.beginPath();
+                ctx.arc((pos.x + 0.5) * GRID_SIZE, (pos.y + 0.5) * GRID_SIZE, MAX_EXPANSION_RADIUS * GRID_SIZE, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(255, 100, 0, 0.2)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+            
+            // Draw game over message
+            if (gameOver) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.fillStyle = 'white';
+                ctx.font = '48px Arial';
+                ctx.textAlign = 'center';
+                
+                if (gameWon) {
+                    ctx.fillText('Fire Prevails!', canvas.width / 2, canvas.height / 2);
+                } else {
+                    ctx.fillText('Ice Conquers All!', canvas.width / 2, canvas.height / 2);
+                }
+                
+                ctx.font = '24px Arial';
+                ctx.fillText('Click Restart to play again', canvas.width / 2, canvas.height / 2 + 50);
+            }
+        }
+        
+        // Update stats display
+        function updateStats() {
+            document.getElementById('firePower').textContent = Math.floor(firePower);
+            document.getElementById('fireTerritory').textContent = countTerritory('fire') + '%';
+            document.getElementById('iceTerritory').textContent = countTerritory('ice') + '%';
+            
+            // Update detailed stats
+            document.getElementById('statFireSources').textContent = fireSourcePositions.length;
+            document.getElementById('statGenerators').textContent = fireGeneratorPositions.length;
+            document.getElementById('statIceSources').textContent = iceSourcePositions.length;
+            
+            // Update speed boost stats
+            document.getElementById('statSpeedBoostStatus').textContent = isFireSpeedBoosted ? `On (${speedBoostTimer})` : 'Off';
+            document.getElementById('statSpeedBoostLevel').textContent = speedBoostLevel;
+            const boostMultiplier = isFireSpeedBoosted ? 1 + (0.2 * speedBoostLevel) : 1.0;
+            document.getElementById('statSpeedBoostMultiplier').textContent = `${boostMultiplier.toFixed(1)}x`;
+            
+            // Update heat wave status
+            document.getElementById('heatWaveActive').textContent = heatWaveActive ? `Yes (${heatWaveTimer})` : 'No';
+            
+            document.getElementById('statTick').textContent = tickCounter;
+            document.getElementById('statSelected').textContent = selectedStructure === 'fire' ? 'Fire Source' : 'Generator';
+            
+            // Power generation calculations
+            const territoryPower = 0.15 * countTerritory('fire') / 100;
+            const generatorPower = 0.05 * fireGeneratorPositions.length;
+            const totalPower = territoryPower + generatorPower;
+            
+            document.getElementById('statTerritoryPower').textContent = territoryPower.toFixed(4);
+            document.getElementById('statGeneratorPower').textContent = generatorPower.toFixed(3);
+            document.getElementById('statTotalPower').textContent = totalPower.toFixed(3);
+        }
+        
+        // Game loop
+        function gameLoop() {
+            updateGame();
+            drawGame();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Event handlers
+        canvas.addEventListener('click', function(event) {
+            if (gameOver) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            // Add clientX/Y offset correction and use more precise calculation
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const x = Math.floor(((event.clientX - rect.left) * scaleX) / GRID_SIZE);
+            const y = Math.floor(((event.clientY - rect.top) * scaleY) / GRID_SIZE);
+            
+            // Check if clicked cell is nearby any existing fire
+            let canPlaceFire = false;
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    const nx = x + dx;
+                    const ny = y + dy;
+                    if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS) {
+                        if (grid[ny][nx].type === 'fire') {
+                            canPlaceFire = true;
+                            break;
+                        }
+                    }
+                }
+                if (canPlaceFire) break;
+            }
+            
+            if (canPlaceFire) {
+                if (selectedStructure === 'fire' && firePower >= FIRE_SOURCE_COST) {
+                    firePower -= FIRE_SOURCE_COST;
+                    placeFireSource(x, y);
+                    updateStats();
+                } else if (selectedStructure === 'generator' && firePower >= GENERATOR_COST) {
+                    firePower -= GENERATOR_COST;
+                    placeFireGenerator(x, y);
+                    updateStats();
+                }
+            }
+        });
+        
+        document.getElementById('placeFire').addEventListener('click', function() {
+            selectedStructure = 'fire';
+            console.log("Selected Fire Source. Click on the game board near existing fire to place it.");
+            updateStats();
+        });
+        
+        document.getElementById('placeGenerator').addEventListener('click', function() {
+            selectedStructure = 'generator';
+            console.log("Selected Generator. Click on the game board near existing fire to place it.");
+            updateStats();
+        });
+        
+        document.getElementById('speedBoost').addEventListener('click', function() {
+            activateSpeedBoost();
+        });
+        
+        document.getElementById('heatWave').addEventListener('click', function() {
+            activateHeatWave();
+        });
+        
+        document.getElementById('restart').addEventListener('click', function() {
+            console.log("Restart button clicked");
+            gameOver = false;
+            gameWon = false;
+            initGame();
+            markAllDirty();
+        });
+        
+        // Start game
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("DOM loaded, initializing game");
+            initGame();
+            gameLoop();
+        });
+    </script>
+</body>
+</html>
+

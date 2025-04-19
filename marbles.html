@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Responsive Tea Cup</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+            font-family: Arial, sans-serif;
+        }
+        
+        .container {
+            text-align: center;
+            max-width: 600px;
+            padding: 20px;
+        }
+        
+        .cup {
+            width: 150px;
+            height: 180px;
+            background: white;
+            border-radius: 0 0 70px 70px;
+            position: relative;
+            margin: 40px auto;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+            transition: all 0.5s ease;
+        }
+        
+        .tea {
+            width: 100%;
+            height: 120px;
+            background: #C19A6B;
+            position: absolute;
+            bottom: 0;
+            border-radius: 0 0 70px 70px;
+            transition: all 0.5s ease;
+        }
+        
+        .handle {
+            width: 40px;
+            height: 80px;
+            border: 15px solid white;
+            border-left: 0;
+            border-radius: 0 40px 40px 0;
+            position: absolute;
+            right: -55px;
+            top: 30px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .steam {
+            position: absolute;
+            top: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        
+        .steam span {
+            position: absolute;
+            height: 20px;
+            width: 8px;
+            border-radius: 50%;
+            background-color: white;
+            margin-top: 0;
+            opacity: 0;
+            animation: steam 2s infinite;
+        }
+        
+        .steam span:nth-child(1) {
+            left: 0;
+            animation-delay: 0.5s;
+        }
+        
+        .steam span:nth-child(2) {
+            left: 20px;
+            animation-delay: 0.3s;
+        }
+        
+        .steam span:nth-child(3) {
+            left: 40px;
+            animation-delay: 0.6s;
+        }
+        
+        .steam span:nth-child(4) {
+            left: 60px;
+            animation-delay: 0.2s;
+        }
+        
+        @keyframes steam {
+            0% {
+                transform: translateY(0);
+                opacity: 0;
+            }
+            50% {
+                opacity: 0.7;
+            }
+            100% {
+                transform: translateY(-25px);
+                opacity: 0;
+            }
+        }
+        
+        .input-container {
+            margin-top: 20px;
+            width: 100%;
+            display: flex;
+        }
+        
+        .text-input {
+            flex-grow: 1;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px 0 0 4px;
+            font-size: 16px;
+        }
+        
+        .submit-btn {
+            padding: 12px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 0 4px 4px 0;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .submit-btn:hover {
+            background-color: #45a049;
+        }
+        
+        .word-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 20px;
+        }
+        
+        .word-btn {
+            padding: 8px 12px;
+            background-color: #e9e9e9;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+        
+        .word-btn.positive {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        .word-btn.negative {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        
+        .word-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .message-history {
+            margin-top: 20px;
+            padding: 15px;
+            width: 100%;
+            min-height: 100px;
+            max-height: 150px;
+            overflow-y: auto;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.1);
+            text-align: left;
+        }
+        
+        .history-item {
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .history-item:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+        
+        .sentiment {
+            margin-top: 15px;
+            font-weight: bold;
+            height: 24px;
+        }
+        
+        .temperature-display {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 600px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .word-buttons {
+                gap: 5px;
+            }
+            
+            .word-btn {
+                padding: 6px 10px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>The Responsive Tea Cup</h1>
+        <p>Talk to the tea cup. Nice words make it warm, mean words make it cool.</p>
+        
+        <div class="cup">
+            <div class="tea" id="tea"></div>
+            <div class="handle"></div>
+            <div class="steam" id="steam">
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+        
+        <div class="temperature-display" id="temperature-display">Current Temperature: 30°C</div>
+        
+        <div class="input-container">
+            <input type="text" id="text-input" class="text-input" placeholder="Type something nice or mean...">
+            <button id="submit-text" class="submit-btn">Send</button>
+        </div>
+        
+        <div class="word-buttons" id="word-buttons">
+            <!-- Buttons will be added here by JavaScript -->
+        </div>
+        
+        <div class="sentiment" id="sentiment"></div>
+        
+        <div class="message-history" id="message-history">
+            <div class="history-item">Say something nice or mean to the tea!</div>
+        </div>
+    </div>
+
+    <script>
+        // DOM elements
+        const tea = document.getElementById('tea');
+        const steam = document.getElementById('steam');
+        const textInput = document.getElementById('text-input');
+        const submitText = document.getElementById('submit-text');
+        const sentiment = document.getElementById('sentiment');
+        const messageHistory = document.getElementById('message-history');
+        const wordButtons = document.getElementById('word-buttons');
+        const temperatureDisplay = document.getElementById('temperature-display');
+        
+        // Initial temperature (30 = neutral on 10-50 scale)
+        let temperature = 30;
+        updateTea();
+        
+        // Positive and negative word lists
+        const positiveWords = ['good', 'nice', 'lovely', 'beautiful', 'awesome', 'amazing', 'wonderful', 'excellent', 
+                              'love', 'sweet', 'warm', 'happy', 'great', 'fantastic', 'delicious', 'pleasant', 'joy',
+                              'perfect', 'brilliant', 'terrific', 'cute', 'kind', 'comforting', 'calming'];
+                              
+        const negativeWords = ['bad', 'awful', 'terrible', 'horrible', 'ugly', 'nasty', 'hate', 'disgusting', 'cold',
+                              'stupid', 'dumb', 'poor', 'gross', 'evil', 'worthless', 'useless', 'ridiculous',
+                              'pathetic', 'disappointing', 'annoying', 'bitter', 'unpleasant', 'yuck', 'mean'];
+                              
+        // Create suggestion buttons
+        function createSuggestionButtons() {
+            // Clear existing buttons
+            wordButtons.innerHTML = '';
+            
+            // Add some positive word buttons
+            const positiveCount = 4;
+            for (let i = 0; i < positiveCount; i++) {
+                const randomIndex = Math.floor(Math.random() * positiveWords.length);
+                const word = positiveWords[randomIndex];
+                
+                const button = document.createElement('button');
+                button.textContent = word;
+                button.className = 'word-btn positive';
+                button.addEventListener('click', () => {
+                    textInput.value += (textInput.value ? ' ' : '') + word;
+                });
+                
+                wordButtons.appendChild(button);
+            }
+            
+            // Add some negative word buttons
+            const negativeCount = 4;
+            for (let i = 0; i < negativeCount; i++) {
+                const randomIndex = Math.floor(Math.random() * negativeWords.length);
+                const word = negativeWords[randomIndex];
+                
+                const button = document.createElement('button');
+                button.textContent = word;
+                button.className = 'word-btn negative';
+                button.addEventListener('click', () => {
+                    textInput.value += (textInput.value ? ' ' : '') + word;
+                });
+                
+                wordButtons.appendChild(button);
+            }
+        }
+        
+        // Event listeners for text input
+        submitText.addEventListener('click', processTextInput);
+        textInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                processTextInput();
+            }
+        });
+        
+        function processTextInput() {
+            const text = textInput.value.trim();
+            if (text) {
+                addToHistory(text);
+                analyzeText(text);
+                textInput.value = '';
+                
+                // Refresh suggestion buttons
+                createSuggestionButtons();
+            }
+        }
+        
+        function addToHistory(text) {
+            const historyItem = document.createElement('div');
+            historyItem.className = 'history-item';
+            historyItem.textContent = text;
+            
+            // Add to the top of the history
+            if (messageHistory.firstChild) {
+                messageHistory.insertBefore(historyItem, messageHistory.firstChild);
+            } else {
+                messageHistory.appendChild(historyItem);
+            }
+            
+            // Keep history limited to 5 items
+            while (messageHistory.children.length > 5) {
+                messageHistory.removeChild(messageHistory.lastChild);
+            }
+        }
+        
+        // Analyze text for sentiment
+        function analyzeText(text) {
+            const words = text.toLowerCase().split(/\s+/);
+            let positiveCount = 0;
+            let negativeCount = 0;
+            
+            words.forEach(word => {
+                // Remove punctuation
+                const cleanWord = word.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "");
+                
+                if (positiveWords.includes(cleanWord)) {
+                    positiveCount++;
+                }
+                
+                if (negativeWords.includes(cleanWord)) {
+                    negativeCount++;
+                }
+            });
+            
+            if (positiveCount > negativeCount) {
+                temperature += 5;
+                sentiment.textContent = "You said something nice! The tea is warming up. 😊";
+                sentiment.style.color = "#4CAF50";
+            } else if (negativeCount > positiveCount) {
+                temperature -= 5;
+                sentiment.textContent = "You said something mean! The tea is cooling down. 😢";
+                sentiment.style.color = "#f44336";
+            } else if (positiveCount === 0 && negativeCount === 0) {
+                sentiment.textContent = "Neutral words don't affect the tea temperature.";
+                sentiment.style.color = "#888";
+            } else {
+                sentiment.textContent = "Mixed feelings - the tea temperature stays about the same.";
+                sentiment.style.color = "#FF9800";
+            }
+            
+            // Ensure temperature stays within bounds (10-50°C)
+            temperature = Math.max(10, Math.min(50, temperature));
+            
+            // Update temperature display
+            temperatureDisplay.textContent = `Current Temperature: ${temperature}°C`;
+            
+            updateTea();
+        }
+        
+        // Update tea appearance based on temperature
+        function updateTea() {
+            // Update tea color - from blue (cold) to red (hot)
+            // Cold (10°C): rgb(100, 150, 255) - blue
+            // Neutral (30°C): rgb(193, 154, 107) - original tea color 
+            // Hot (50°C): rgb(255, 80, 50) - red-orange
+            
+            let r, g, b;
+            
+            if (temperature <= 30) {
+                // Cold range (blue to neutral)
+                const percent = (temperature - 10) / 20; // 0 to 1
+                r = Math.round(100 + (193 - 100) * percent);
+                g = Math.round(150 + (154 - 150) * percent);
+                b = Math.round(255 - (255 - 107) * percent);
+            } else {
+                // Hot range (neutral to red)
+                const percent = (temperature - 30) / 20; // 0 to 1
+                r = Math.round(193 + (255 - 193) * percent);
+                g = Math.round(154 - (154 - 80) * percent);
+                b = Math.round(107 - (107 - 50) * percent);
+            }
+            
+            tea.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+            
+            // Show steam when hot (above 40°C)
+            if (temperature > 40) {
+                steam.style.opacity = "1";
+            } else {
+                steam.style.opacity = "0";
+            }
+        }
+        
+        // Initialize suggestion buttons
+        createSuggestionButtons();
+    </script>
+</body>
+</html>
