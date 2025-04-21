@@ -1,0 +1,1906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2 Player Uno</title>
+  <style>
+    body { font-family: sans-serif; background: #2e7d32; color: #fff; margin: 0; padding: 0; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    .row { display: flex; justify-content: space-between; margin-bottom: 20px; }
+    .hand { 
+      display: flex; 
+      gap: 8px; 
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 15px;
+    }
+    .card { 
+      width: 60px; 
+      height: 90px; 
+      border-radius: 8px; 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center; 
+      font-size: 1.2em; 
+      font-weight: bold; 
+      cursor: pointer; 
+      border: 2px solid #fff; 
+      box-shadow: 1px 2px 6px #0006;
+      margin-bottom: 8px;
+      position: relative;
+      overflow: hidden;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+      background-image: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0.1) 100%);
+    }
+    
+    /* Create more intricate butterfly wing patterns for each color */
+    .card.red {
+      background-color: #e53935;
+      background-image: 
+        radial-gradient(circle at 70% 25%, #ffcdd2 0%, transparent 30%),
+        radial-gradient(circle at 25% 25%, #ffcdd2 0%, transparent 20%),
+        radial-gradient(circle at 50% 40%, #ff8a80 0%, transparent 35%),
+        radial-gradient(circle at 80% 60%, #ff5252 0%, transparent 25%),
+        radial-gradient(circle at 20% 60%, #ff5252 0%, transparent 25%),
+        radial-gradient(circle at 50% 80%, #d50000 0%, transparent 35%),
+        linear-gradient(135deg, #b71c1c 0%, #e53935 40%, #ef5350 60%, #ff8a80 100%);
+      box-shadow: 0 2px 10px rgba(183, 28, 28, 0.4);
+    }
+    
+    .card.yellow {
+      background-color: #fbc02d;
+      color: #222;
+      background-image: 
+        radial-gradient(circle at 70% 25%, #fff9c4 0%, transparent 30%),
+        radial-gradient(circle at 25% 25%, #fff9c4 0%, transparent 20%),
+        radial-gradient(circle at 50% 40%, #ffee58 0%, transparent 35%),
+        radial-gradient(circle at 80% 60%, #ffd600 0%, transparent 25%),
+        radial-gradient(circle at 20% 60%, #ffd600 0%, transparent 25%),
+        radial-gradient(circle at 50% 80%, #ff6f00 0%, transparent 35%),
+        linear-gradient(135deg, #ff8f00 0%, #fbc02d 40%, #ffeb3b 60%, #fff9c4 100%);
+      box-shadow: 0 2px 10px rgba(255, 143, 0, 0.4);
+    }
+    
+    .card.green {
+      background-color: #43a047;
+      background-image: 
+        radial-gradient(circle at 70% 25%, #c8e6c9 0%, transparent 30%),
+        radial-gradient(circle at 25% 25%, #c8e6c9 0%, transparent 20%),
+        radial-gradient(circle at 50% 40%, #81c784 0%, transparent 35%),
+        radial-gradient(circle at 80% 60%, #4caf50 0%, transparent 25%),
+        radial-gradient(circle at 20% 60%, #4caf50 0%, transparent 25%),
+        radial-gradient(circle at 50% 80%, #1b5e20 0%, transparent 35%),
+        linear-gradient(135deg, #1b5e20 0%, #43a047 40%, #66bb6a 60%, #c8e6c9 100%);
+      box-shadow: 0 2px 10px rgba(27, 94, 32, 0.4);
+    }
+    
+    .card.blue {
+      background-color: #1e88e5;
+      background-image: 
+        radial-gradient(circle at 70% 25%, #e3f2fd 0%, transparent 30%),
+        radial-gradient(circle at 25% 25%, #e3f2fd 0%, transparent 20%),
+        radial-gradient(circle at 50% 40%, #90caf9 0%, transparent 35%),
+        radial-gradient(circle at 80% 60%, #42a5f5 0%, transparent 25%),
+        radial-gradient(circle at 20% 60%, #42a5f5 0%, transparent 25%),
+        radial-gradient(circle at 50% 80%, #0d47a1 0%, transparent 35%),
+        linear-gradient(135deg, #0d47a1 0%, #1e88e5 40%, #64b5f6 60%, #e3f2fd 100%);
+      box-shadow: 0 2px 10px rgba(13, 71, 161, 0.4);
+    }
+    
+    /* Add more intricate wing veins and patterns */
+    .card.red::before,
+    .card.yellow::before,
+    .card.green::before,
+    .card.blue::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 1; /* Ensure pattern is behind text */
+      /* Primary wing veins */
+      background-image: 
+        /* Central vein */
+        linear-gradient(180deg, transparent 48%, rgba(255,255,255,0.5) 49%, rgba(255,255,255,0.5) 51%, transparent 52%),
+        /* Diagonal veins */
+        linear-gradient(150deg, transparent 48%, rgba(255,255,255,0.4) 49%, rgba(255,255,255,0.4) 51%, transparent 52%),
+        linear-gradient(210deg, transparent 48%, rgba(255,255,255,0.4) 49%, rgba(255,255,255,0.4) 51%, transparent 52%),
+        linear-gradient(120deg, transparent 48%, rgba(255,255,255,0.3) 49%, rgba(255,255,255,0.3) 51%, transparent 52%),
+        linear-gradient(240deg, transparent 48%, rgba(255,255,255,0.3) 49%, rgba(255,255,255,0.3) 51%, transparent 52%);
+      background-size: 100% 100%;
+      background-position: center;
+      pointer-events: none;
+    }
+    
+    /* Add secondary finer vein patterns */
+    .card.red::after,
+    .card.yellow::after,
+    .card.green::after,
+    .card.blue::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 1; /* Ensure pattern is behind text */
+      /* Secondary wing veins and patterns */
+      background-image: 
+        /* Fine cross-hatching */
+        repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(255,255,255,0.1) 8px, rgba(255,255,255,0.1) 9px),
+        repeating-linear-gradient(135deg, transparent, transparent 8px, rgba(255,255,255,0.1) 8px, rgba(255,255,255,0.1) 9px),
+        /* Tiny spots pattern */
+        radial-gradient(circle at 30% 30%, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.2) 1px, transparent 2px),
+        radial-gradient(circle at 70% 30%, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.2) 1px, transparent 2px),
+        radial-gradient(circle at 30% 70%, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.2) 1px, transparent 2px),
+        radial-gradient(circle at 70% 70%, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.2) 1px, transparent 2px),
+        radial-gradient(circle at 50% 50%, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.2) 1px, transparent 2px);
+      background-size: 16px 16px, 16px 16px, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%;
+      background-position: center;
+      pointer-events: none;
+    }
+    
+    /* Add subtle shimmer animation to all colored cards */
+    @keyframes wingShimmer {
+      0% { filter: brightness(1) contrast(1); }
+      50% { filter: brightness(1.1) contrast(1.05); }
+      100% { filter: brightness(1) contrast(1); }
+    }
+    
+    .card.red, .card.yellow, .card.green, .card.blue {
+      animation: wingShimmer 3s infinite ease-in-out;
+    }
+    
+    /* Add subtle border effect to simulate wing edge */
+    .card.red, .card.yellow, .card.green, .card.blue {
+      border-width: 1px;
+      border-style: solid;
+    }
+    
+    .card.red {
+      border-image: linear-gradient(135deg, #ffcdd2, #e53935, #b71c1c) 1;
+    }
+    
+    .card.yellow {
+      border-image: linear-gradient(135deg, #fff9c4, #fbc02d, #ff8f00) 1;
+    }
+    
+    .card.green {
+      border-image: linear-gradient(135deg, #c8e6c9, #43a047, #1b5e20) 1;
+    }
+    
+    .card.blue {
+      border-image: linear-gradient(135deg, #e3f2fd, #1e88e5, #0d47a1) 1;
+    }
+    
+    /* Enhanced card text visibility */
+    .card {
+      text-shadow: 0 1px 2px rgba(0,0,0,0.6), 0 0 4px rgba(255,255,255,0.4);
+      font-weight: bold;
+      position: relative; /* Ensure proper stacking context */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    /* Ensure text content is absolutely on top of the wing patterns */
+    .card > span,
+    .card-fairy-gobble-text {
+      position: relative;
+      z-index: 5; /* Position text well above patterns */
+      background-color: rgba(255, 255, 255, 0.15); /* Semi-transparent background */
+      padding: 2px 4px;
+      border-radius: 3px;
+      backdrop-filter: blur(1px); /* Slightly blur background under text */
+      -webkit-backdrop-filter: blur(1px);
+      box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
+    }
+    
+    /* Fix for text inside cards to ensure clicks work properly */
+    .card * {
+      pointer-events: none; /* Make all child elements non-interactive */
+    }
+    
+    .card.wild { 
+      background: linear-gradient(135deg, #e53935 25%, #fbc02d 50%, #43a047 75%, #1e88e5 100%); 
+      color: #222; 
+      position: relative;
+      overflow: hidden;
+    }
+    .pile { display: flex; flex-direction: column; align-items: center; width: 20%; margin: 0 20px; }
+    .pile .card { margin-bottom: 8px; }
+    .draw-btn { 
+      border: none; 
+      border-radius: 6px; 
+      padding: 10px 18px; 
+      font-size: 1em; 
+      font-weight: bold; 
+      cursor: pointer; 
+      margin-top: 10px; 
+    }
+    body.player1-turn .draw-btn {
+      background: #fff; 
+      color: #2e7d32;
+    }
+    body.player2-turn .draw-btn {
+      background: #222; 
+      color: #fbc02d;
+    }
+    .status { text-align: center; font-size: 1.2em; margin-bottom: 10px; }
+    .current-player { font-weight: bold; }
+    .hidden { visibility: hidden; }
+    .winner { font-size: 2em; color: #ffd600; text-align: center; margin-top: 30px; }
+    .inactive { background-color: #ccc; cursor: not-allowed; }
+    .player-area {
+      padding: 15px; 
+      border-radius: 8px;
+      width: 30%;
+      min-width: 250px;
+      flex: 1;
+    }
+    .player-area.active { 
+      border: 3px solid #fff; 
+      box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+    }
+    body.player2-turn .player-area.active {
+      border: 3px solid #222;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+    }
+    .player-area.player1 { background-color: #2e7d32; }
+    .player-area.player2 { background-color: #fbc02d; color: #222; }
+    .card.just-drawn { 
+      box-shadow: 0 0 15px gold; 
+      transform: scale(1.05);
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 15px gold; }
+      50% { box-shadow: 0 0 25px gold; }
+      100% { box-shadow: 0 0 15px gold; }
+    }
+    
+    /* Victory celebration styles */
+    .victory-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.8);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      overflow: hidden;
+      animation: fadeIn 0.5s ease-in-out;
+    }
+    .victory-message {
+      font-size: 5em;
+      font-weight: bold;
+      color: gold;
+      text-shadow: 0 0 10px rgba(255,215,0,0.7);
+      margin-bottom: 20px;
+      animation: bounce 1s infinite alternate;
+    }
+    .victory-player {
+      font-size: 2.5em;
+      color: white;
+      margin-bottom: 40px;
+      animation: colorCycle 3s infinite;
+    }
+    .play-again-btn {
+      background: gold;
+      color: #333;
+      border: none;
+      border-radius: 30px;
+      padding: 15px 30px;
+      font-size: 1.5em;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 0 20px rgba(255,215,0,0.7);
+      transition: all 0.3s ease;
+    }
+    .play-again-btn:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 30px rgba(255,215,0,0.9);
+    }
+    .glitter {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background: gold;
+      border-radius: 50%;
+      animation: fall linear;
+      box-shadow: 0 0 10px gold, 0 0 20px gold;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes bounce {
+      from { transform: translateY(0); }
+      to { transform: translateY(-20px); }
+    }
+    @keyframes colorCycle {
+      0% { color: #e53935; }
+      25% { color: #fbc02d; }
+      50% { color: #43a047; }
+      75% { color: #1e88e5; }
+      100% { color: #e53935; }
+    }
+    @keyframes fall {
+      to { transform: translateY(100vh); }
+    }
+    .player-title {
+      font-size: 1.5em;
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 10px;
+      padding-bottom: 5px;
+      border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    body.player2-turn .player-area.player2 .player-title {
+      border-bottom-color: rgba(0, 0, 0, 0.3);
+    }
+    .card-count {
+      display: inline-block;
+      margin-left: 10px;
+      font-size: 0.9em;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      line-height: 30px;
+      text-align: center;
+    }
+    body.player2-turn .player-area.player2 .card-count {
+      background: rgba(0, 0, 0, 0.2);
+    }
+    /* Add CSS for gift animation */
+    .gift-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.6);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      overflow: hidden;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+    .gift-overlay.fade-out {
+      animation: fadeOut 1s ease-in-out forwards;
+    }
+    .gift-message {
+      font-size: 4em;
+      font-weight: bold;
+      color: gold;
+      text-shadow: 0 0 10px gold, 0 0 20px gold;
+      margin-bottom: 20px;
+      animation: pulse 1s infinite alternate;
+    }
+    .gift-subtitle {
+      font-size: 2em;
+      color: white;
+      text-shadow: 0 0 5px rgba(255,255,255,0.5);
+      animation: colorCycle 4s infinite;
+    }
+    @keyframes fadeOut {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+    /* Add CSS for draw card indicators */
+    .draw-indicator {
+      position: absolute;
+      width: 85%;
+      height: 50px;
+      top: -55px;
+      left: 7.5%;
+      background: rgba(255, 0, 0, 0.7);
+      border-radius: 10px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-weight: bold;
+      animation: bounce 1s infinite alternate, glow 1.5s infinite alternate;
+      box-shadow: 0 0 15px red;
+      pointer-events: none;
+    }
+    .draw-btn.must-draw {
+      animation: pulse-draw 1.5s infinite;
+      transform: scale(1.1);
+      font-weight: bold;
+      box-shadow: 0 0 15px rgba(255, 0, 0, 0.7);
+    }
+    @keyframes pulse-draw {
+      0% { box-shadow: 0 0 10px rgba(255, 0, 0, 0.7); }
+      50% { box-shadow: 0 0 20px rgba(255, 0, 0, 0.9); background-color: #ff5252; }
+      100% { box-shadow: 0 0 10px rgba(255, 0, 0, 0.7); }
+    }
+    @keyframes glow {
+      0% { box-shadow: 0 0 5px red; }
+      100% { box-shadow: 0 0 20px red; }
+    }
+    /* Add glitter effect to wild cards */
+    .card.wild::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      right: -50%;
+      bottom: -50%;
+      background: linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.4) 50%,
+        rgba(255, 255, 255, 0) 100%
+      );
+      animation: wildGlitter 2.5s infinite linear;
+      transform: rotate(45deg);
+      pointer-events: none;
+    }
+    
+    /* Add sparkle particles */
+    .card.wild::after {
+      content: '';
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: white;
+      opacity: 0.7;
+      box-shadow: 0 0 10px 2px gold;
+      animation: wildSparkle 4s infinite ease-in-out;
+      top: 30%;
+      left: 20%;
+      pointer-events: none;
+    }
+    
+    /* Additional sparkles */
+    .card.wild .sparkle-1,
+    .card.wild .sparkle-2,
+    .card.wild .sparkle-3 {
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: white;
+      opacity: 0.8;
+      box-shadow: 0 0 8px 1px gold;
+      animation: wildSparkle 3s infinite ease-in-out;
+      pointer-events: none;
+    }
+    
+    @keyframes wildGlitter {
+      0% {
+        transform: translate(-50%, -50%) rotate(0deg);
+        opacity: 0.2;
+      }
+      50% {
+        opacity: 0.4;
+      }
+      100% {
+        transform: translate(-50%, -50%) rotate(360deg);
+        opacity: 0.2;
+      }
+    }
+    
+    @keyframes wildSparkle {
+      0%, 100% {
+        opacity: 0;
+      }
+      50% {
+        opacity: 0.8;
+        box-shadow: 0 0 15px 3px white;
+      }
+    }
+
+    /* Butterfly styles */
+    .butterfly {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      pointer-events: none;
+      z-index: 5;
+    }
+    
+    .butterfly::before,
+    .butterfly::after {
+      content: '';
+      position: absolute;
+      width: 5px;
+      height: 6px;
+      border-radius: 80% 0 55% 50% / 55% 0 80% 50%;
+      top: 0;
+      background-color: currentColor;
+      opacity: 0.8;
+      transform-origin: center right;
+    }
+    
+    .butterfly::before {
+      left: 0;
+      transform: rotateY(-20deg);
+    }
+    
+    .butterfly::after {
+      right: 0;
+      transform: scaleX(-1) rotateY(-20deg);
+    }
+    
+    .butterfly.top-left {
+      top: 12px;
+      left: 10px;
+    }
+    
+    .butterfly.top-right {
+      top: 12px;
+      right: 10px;
+    }
+    
+    .butterfly.bottom {
+      bottom: 12px;
+      left: 25px;
+    }
+    
+    .butterfly.yellow { color: #fbc02d; }
+    .butterfly.red { color: #e53935; }
+    .butterfly.green { color: #43a047; }
+    .butterfly.blue { color: #1e88e5; }
+    .card.playable { 
+      box-shadow: 0 0 15px gold; 
+      transform: scale(1.05);
+      animation: pulse 1.5s infinite;
+    }
+    
+    /* Player 2 gets a different highlight color for better visibility against yellow background */
+    body.player2-turn .card.playable {
+      box-shadow: 0 0 15px #d32f2f; /* Red glow for Player 2 */
+      animation: pulseRed 1.5s infinite;
+    }
+    
+    @keyframes pulseRed {
+      0% { box-shadow: 0 0 15px #d32f2f; }
+      50% { box-shadow: 0 0 25px #d32f2f; }
+      100% { box-shadow: 0 0 15px #d32f2f; }
+    }
+
+    /* Add fairy gobble animation */
+    .fairy-gobble-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+    
+    .fairy-gobble-message {
+      font-size: 3.5em;
+      font-weight: bold;
+      color: #ff69b4;
+      text-shadow: 0 0 10px #ff69b4, 0 0 20px #ff69b4;
+      margin-bottom: 20px;
+      animation: bounce 1s infinite alternate;
+    }
+    
+    .fairy-gobble-subtitle {
+      font-size: 2em;
+      color: white;
+      text-shadow: 0 0 5px rgba(255,255,255,0.5);
+      margin-bottom: 20px;
+    }
+    
+    .fairy {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background: radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(255,105,180,0.7) 70%);
+      border-radius: 50%;
+      filter: blur(2px);
+      box-shadow: 0 0 10px #ff69b4, 0 0 20px #ff69b4;
+      opacity: 0.9;
+      z-index: 1001;
+      transition: transform 0.5s ease-out;
+    }
+    
+    .fairy-trail {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(255,105,180,0.4) 70%);
+      border-radius: 50%;
+      filter: blur(3px);
+      opacity: 0.6;
+      z-index: 1000;
+      animation: fadeOut 1s forwards;
+    }
+
+    /* Enhance fairy animations */
+    .main-fairy {
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,255,255,0.9) 40%, rgba(255,105,180,0.8) 60%);
+      filter: blur(1px);
+      box-shadow: 
+        0 0 15px #ff69b4, 
+        0 0 30px #ff69b4,
+        inset 0 0 10px #fff;
+      z-index: 1010;
+      transform-origin: center;
+      transition: all 0.5s ease-out;
+    }
+    
+    .main-fairy::before,
+    .main-fairy::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      width: 25px;
+      height: 15px;
+      background: rgba(255, 255, 255, 0.7);
+      border-radius: 50% 50% 0 0;
+      transform-origin: center top;
+      z-index: -1;
+      filter: blur(1px);
+      opacity: 0.7;
+      animation: fairyWings 0.3s infinite alternate ease-in-out;
+    }
+    
+    .main-fairy::before {
+      left: -15px;
+      transform: rotate(-20deg);
+    }
+    
+    .main-fairy::after {
+      right: -15px;
+      transform: rotate(20deg);
+    }
+    
+    @keyframes fairyWings {
+      0% {
+        transform: rotate(-20deg) scaleY(0.9);
+      }
+      100% {
+        transform: rotate(-30deg) scaleY(1.1);
+      }
+    }
+    
+    .fairy-mouth {
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.5);
+      top: 60%;
+      left: 50%;
+      transform: translate(-50%, -50%) scaleY(0.5);
+      transition: all 0.3s ease-out;
+      z-index: 1011;
+    }
+    
+    .fairy-mouth.eating {
+      animation: eat 1s forwards;
+    }
+    
+    @keyframes eat {
+      0% { transform: translate(-50%, -50%) scaleY(0.5); }
+      40% { transform: translate(-50%, -50%) scale(1.5, 0.2); }
+      60% { transform: translate(-50%, -50%) scale(1.5, 1.5); }
+      100% { transform: translate(-50%, -50%) scaleY(0.5); }
+    }
+    
+    .card-target-highlight {
+      position: absolute;
+      border: 3px dashed #ff69b4;
+      border-radius: 8px;
+      box-shadow: 0 0 10px #ff69b4, inset 0 0 10px #ff69b4;
+      animation: targetPulse 1s infinite alternate;
+      pointer-events: none;
+      z-index: 1005;
+    }
+    
+    @keyframes targetPulse {
+      0% { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+
+    /* Make 'Fairy Gobble' text smaller on cards */
+    .card:contains('Fairy Gobble') {
+      font-size: 0.9em;
+    }
+    
+    /* Alternative selector since :contains is not standard CSS */
+    .card-fairy-gobble-text {
+      font-size: 0.95em;
+      line-height: 1.1em;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="status" id="status"></div>
+    <div class="row">
+      <div id="player1Area" class="player-area player1">
+        <div id="player1Title" class="player-title">Player 1</div>
+        <div class="hand" id="hand0"></div>
+      </div>
+      <div class="pile">
+        <div>Discard</div>
+        <div id="discard"></div>
+        <div>Draw</div>
+        <div id="draw"></div>
+        <button class="draw-btn" id="drawBtn">Draw Card</button>
+      </div>
+      <div id="player2Area" class="player-area player2">
+        <div id="player2Title" class="player-title">Player 2</div>
+        <div class="hand" id="hand1"></div>
+      </div>
+    </div>
+    <div class="winner" id="winner"></div>
+  </div>
+  <div id="victoryOverlay" class="victory-overlay" style="display: none;">
+    <div class="victory-message">UNO VICTORY!</div>
+    <div id="victoryPlayer" class="victory-player">Player 1 Wins!</div>
+    <button class="play-again-btn" id="playAgainBtn">Play Again</button>
+  </div>
+  
+  <script>
+    // Uno card definitions
+    const COLORS = ["red", "yellow", "green", "blue"];
+    const VALUES = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "Skip", "+2", "+10", "+30", "Gift", "Fairy Gobble"];
+    const WILD_CARDS = ["Wild", "Wild+4"];
+    const CARDS_PER_COLOR = 8; // How many of each numbered card per color
+    const SPECIAL_CARDS_PER_COLOR = 6; // How many of each special card per color
+    const GIFT_CARDS_PER_COLOR = 5; // How many gift cards per color
+    const FAIRY_GOBBLE_CARDS_PER_COLOR = 10; // How many Fairy Gobble cards per color
+    const WILD_CARDS_COUNT = 15; // How many of each wild card type
+
+    function createDeck() {
+      const deck = [];
+      
+      // Add numbered cards (0-9)
+      for (const color of COLORS) {
+        deck.push({ color, value: "0" }); // Only one 0 per color
+        for (let i = 1; i <= 9; i++) {
+          for (let j = 0; j < CARDS_PER_COLOR; j++) {
+            deck.push({ color, value: String(i) });
+          }
+        }
+        
+        // Add Skip and +2 cards
+        for (let i = 0; i < SPECIAL_CARDS_PER_COLOR; i++) {
+          deck.push({ color, value: "Skip" });
+          deck.push({ color, value: "+2" });
+        }
+
+        // Add +10 cards (2 per color)
+        for (let i = 0; i < 2; i++) {
+          deck.push({ color, value: "+10" });
+        }
+        
+        // Add +30 cards (1 per color)
+        deck.push({ color, value: "+30" });
+        
+        // Add Gift cards (5 per color)
+        for (let i = 0; i < GIFT_CARDS_PER_COLOR; i++) {
+          deck.push({ color, value: "Gift" });
+        }
+        
+        // Add Fairy Gobble cards (10 per color)
+        for (let i = 0; i < FAIRY_GOBBLE_CARDS_PER_COLOR; i++) {
+          deck.push({ color, value: "Fairy Gobble" });
+        }
+      }
+      
+      // Add Wild cards
+      for (let i = 0; i < WILD_CARDS_COUNT; i++) {
+        deck.push({ color: "wild", value: "Wild" });
+        deck.push({ color: "wild", value: "Wild+4" });
+      }
+      
+      console.log(`Created deck with ${deck.length} cards`);
+      return deck;
+    }
+
+    function shuffle(deck) {
+      for (let i = deck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [deck[i], deck[j]] = [deck[j], deck[i]];
+      }
+      return deck;
+    }
+
+    // Game state
+    let deck = [];
+    let discardPile = [];
+    let hands = [[], []];
+    let currentPlayer = 0;
+    let direction = 1; // 1: normal, -1: reversed
+    let pendingDraw = 0;
+    let pendingCardType = null; // Track the type of pending draw card ("+2", "+10", etc.)
+    let mustChooseColor = false;
+    let chosenWildCard = null;
+    let winner = null;
+    let justDrawnCard = null; // Track the card that was just drawn
+
+    // Track card counts to detect Uno/Dos moments
+    let lastCardCounts = [7, 7]; // Initial counts after deal
+    let speechSynth = window.speechSynthesis;
+    
+    function deal() {
+      deck = shuffle(createDeck());
+      hands = [[], []];
+      for (let i = 0; i < 7; i++) {
+        hands[0].push(deck.pop());
+        hands[1].push(deck.pop());
+      }
+      // Start discard pile with a non-wild card
+      let firstCard;
+      do {
+        firstCard = deck.pop();
+        deck.unshift(firstCard);
+      } while (firstCard.color === "wild");
+      discardPile = [deck.pop()];
+      currentPlayer = 0;
+      direction = 1;
+      pendingDraw = 0;
+      pendingCardType = null;
+      mustChooseColor = false;
+      chosenWildCard = null;
+      winner = null;
+      justDrawnCard = null;
+      
+      // Reset card counts
+      lastCardCounts = [hands[0].length, hands[1].length];
+      
+      // Sort hands after dealing
+      sortHands();
+    }
+    
+    function sortHands() {
+      // Define color order (wild first, then red, yellow, green, blue)
+      const colorOrder = { 'wild': 0, 'red': 1, 'yellow': 2, 'green': 3, 'blue': 4 };
+      
+      // Sort function for cards
+      const sortCards = (a, b) => {
+        // First sort by color
+        if (a.color !== b.color) {
+          return colorOrder[a.color] - colorOrder[b.color];
+        }
+        
+        // Then sort by value (numbers first, then special cards)
+        const aIsNumber = !isNaN(parseInt(a.value));
+        const bIsNumber = !isNaN(parseInt(b.value));
+        
+        if (aIsNumber && bIsNumber) {
+          return parseInt(a.value) - parseInt(b.value);
+        }
+        
+        if (aIsNumber) return -1;
+        if (bIsNumber) return 1;
+        
+        // Sort special cards
+        if (a.value === "Wild" && b.value !== "Wild") return -1;
+        if (a.value !== "Wild" && b.value === "Wild") return 1;
+        if (a.value === "Wild+4" && b.value !== "Wild+4") return -1;
+        if (a.value !== "Wild+4" && b.value === "Wild+4") return 1;
+        if (a.value === "Skip" && b.value !== "Skip") return -1;
+        if (a.value !== "Skip" && b.value === "Skip") return 1;
+        if (a.value === "+2" && b.value !== "+2") return -1;
+        if (a.value !== "+2" && b.value === "+2") return 1;
+        if (a.value === "+10" && b.value !== "+10") return -1;
+        if (a.value !== "+10" && b.value === "+10") return 1;
+        if (a.value === "+30" && b.value !== "+30") return -1;
+        if (a.value !== "+30" && b.value === "+30") return 1;
+        
+        return 0;
+      };
+      
+      // Sort both players' hands
+      hands[0].sort(sortCards);
+      hands[1].sort(sortCards);
+    }
+
+    function canPlay(card, top) {
+      if (mustChooseColor) return false;
+      
+      // If there's a pending draw, player can only play a matching plus card
+      if (pendingDraw > 0 && pendingCardType) {
+        // For +4 cards (Wild+4), the color must also match the chosen wild color
+        if (pendingCardType === "Wild+4") {
+          return card.value === "Wild+4";
+        }
+        // For other plus cards, the value must match
+        return card.value === pendingCardType;
+      }
+      
+      // Normal card playing rules
+      if (card.color === "wild") return true;
+      if (top.color === "wild" && chosenWildCard) {
+        return card.color === chosenWildCard;
+      }
+      return card.color === top.color || card.value === top.value;
+    }
+
+    function render() {
+      // Change background color based on current player
+      if (currentPlayer === 0) {
+        document.body.style.backgroundColor = '#2e7d32';
+        document.body.style.color = '#fff';
+        document.body.classList.add('player1-turn');
+        document.body.classList.remove('player2-turn');
+      } else {
+        document.body.style.backgroundColor = '#fbc02d';
+        document.body.style.color = '#222';
+        document.body.classList.add('player2-turn');
+        document.body.classList.remove('player1-turn');
+      }
+      
+      // Update player titles with card counts
+      document.getElementById("player1Title").innerHTML = `Player 1 <span class="card-count">${hands[0].length}</span>`;
+      document.getElementById("player2Title").innerHTML = `Player 2 <span class="card-count">${hands[1].length}</span>`;
+      
+      const top = discardPile[discardPile.length - 1];
+      
+      // Player 1 hand rendering
+      document.getElementById("hand0").innerHTML = hands[0].map((card, idx) => {
+        const isJustDrawn = justDrawnCard && currentPlayer === 0 && idx === hands[0].length - 1 && card === justDrawnCard;
+        const isVisible = currentPlayer === 0 || isJustDrawn;
+        const isWild = card.color === "wild";
+        const isPlayable = isVisible && currentPlayer === 0 && !mustChooseColor && canPlay(card, top);
+        const isFairyGobble = card.value === "Fairy Gobble";
+        
+        let cardHtml = `<div class="card ${card.color}${isJustDrawn ? ' just-drawn' : ''}${isPlayable ? ' playable' : ''} ${isVisible ? '' : 'hidden'}" data-idx="${idx}" data-player="0">`;
+        
+        // Use smaller text for Fairy Gobble cards and ALWAYS wrap values in spans
+        if (isVisible && isFairyGobble) {
+          cardHtml += `<span class="card-fairy-gobble-text">Fairy Gobble</span>`;
+        } else if (isVisible) {
+          cardHtml += `<span>${card.value}</span>`;
+        }
+        
+        // Add sparkle elements to wild cards
+        if (isVisible && isWild) {
+          cardHtml += `
+            <div class="sparkle-1" style="top: 70%; left: 30%; animation-delay: 0.5s;"></div>
+            <div class="sparkle-2" style="top: 20%; left: 70%; animation-delay: 1.5s;"></div>
+            <div class="sparkle-3" style="top: 45%; left: 60%; animation-delay: 2.5s;"></div>
+          `;
+        }
+        
+        cardHtml += `</div>`;
+        return cardHtml;
+      }).join("");
+      
+      // Player 2 hand rendering
+      document.getElementById("hand1").innerHTML = hands[1].map((card, idx) => {
+        const isJustDrawn = justDrawnCard && currentPlayer === 1 && idx === hands[1].length - 1 && card === justDrawnCard;
+        const isVisible = currentPlayer === 1 || isJustDrawn;
+        const isWild = card.color === "wild";
+        const isPlayable = isVisible && currentPlayer === 1 && !mustChooseColor && canPlay(card, top);
+        const isFairyGobble = card.value === "Fairy Gobble";
+        
+        let cardHtml = `<div class="card ${card.color}${isJustDrawn ? ' just-drawn' : ''}${isPlayable ? ' playable' : ''} ${isVisible ? '' : 'hidden'}" data-idx="${idx}" data-player="1">`;
+        
+        // Use smaller text for Fairy Gobble cards and ALWAYS wrap values in spans
+        if (isVisible && isFairyGobble) {
+          cardHtml += `<span class="card-fairy-gobble-text">Fairy Gobble</span>`;
+        } else if (isVisible) {
+          cardHtml += `<span>${card.value}</span>`;
+        }
+        
+        // Add sparkle elements to wild cards
+        if (isVisible && isWild) {
+          cardHtml += `
+            <div class="sparkle-1" style="top: 70%; left: 30%; animation-delay: 0.5s;"></div>
+            <div class="sparkle-2" style="top: 20%; left: 70%; animation-delay: 1.5s;"></div>
+            <div class="sparkle-3" style="top: 45%; left: 60%; animation-delay: 2.5s;"></div>
+          `;
+        }
+        
+        cardHtml += `</div>`;
+        return cardHtml;
+      }).join("");
+      
+      let discardHtml = `<div class="card ${top.color}">`;
+      
+      // Use smaller text for Fairy Gobble cards in discard pile and ALWAYS wrap values in spans
+      if (top.value === "Fairy Gobble") {
+        discardHtml += `<span class="card-fairy-gobble-text">Fairy Gobble</span>`;
+      } else {
+        discardHtml += `<span>${top.value}</span>`;
+      }
+      
+      // Add sparkles to wild card in discard pile
+      if (top.color === "wild") {
+        discardHtml += `
+          <div class="sparkle-1" style="top: 70%; left: 30%; animation-delay: 0.5s;"></div>
+          <div class="sparkle-2" style="top: 20%; left: 70%; animation-delay: 1.5s;"></div>
+          <div class="sparkle-3" style="top: 45%; left: 60%; animation-delay: 2.5s;"></div>
+        `;
+      }
+      
+      discardHtml += `</div>`;
+      document.getElementById("discard").innerHTML = discardHtml;
+      document.getElementById("draw").innerHTML = `<div class="card" style="background:#444;">${deck.length}</div>`;
+      
+      // Update status message
+      let statusMessage = `Current turn: <span class="current-player">Player ${currentPlayer + 1}</span>`;
+      if (mustChooseColor) {
+        statusMessage += ' - Choose color for Wild';
+      } else if (pendingDraw > 0) {
+        const cardTypeText = pendingCardType === "Wild+4" ? "+4" : pendingCardType;
+        statusMessage += ` (Must draw ${pendingDraw} cards or play a ${cardTypeText} card)`;
+      } else if (justDrawnCard) {
+        const canPlayDrawnCard = canPlay(justDrawnCard, top);
+        statusMessage += ` - You drew a card. ${canPlayDrawnCard ? 'You can play it or pass.' : 'You can\'t play this card.'}`;
+      } else if (top.color === "wild" && chosenWildCard) {
+        statusMessage += ` - Previous player played a Wild card and chose ${chosenWildCard}`;
+      }
+      document.getElementById("status").innerHTML = winner ? '' : statusMessage;
+      
+      // Update player areas to highlight current player
+      document.getElementById("player1Area").classList.toggle("active", currentPlayer === 0);
+      document.getElementById("player2Area").classList.toggle("active", currentPlayer === 1);
+      
+      // Update draw button state and add draw indicators
+      const drawBtn = document.getElementById("drawBtn");
+      
+      // Remove previous indicators
+      const oldIndicator = document.querySelector('.draw-indicator');
+      if (oldIndicator) oldIndicator.remove();
+      
+      // Reset draw button styling
+      drawBtn.classList.remove('must-draw');
+      
+      if (winner || mustChooseColor) {
+        drawBtn.classList.add("inactive");
+        drawBtn.disabled = true;
+      } else {
+        drawBtn.classList.remove("inactive");
+        drawBtn.disabled = false;
+        
+        if (pendingDraw > 0) {
+          // Add pulsing animation to draw button when cards must be drawn
+          drawBtn.classList.add('must-draw');
+          drawBtn.textContent = `Draw ${pendingDraw} Cards`;
+          
+          // Add floating indicator above draw pile
+          const drawPile = document.getElementById('draw');
+          const indicator = document.createElement('div');
+          indicator.className = 'draw-indicator';
+          if (pendingCardType) {
+            const cardTypeText = pendingCardType === "Wild+4" ? "+4" : pendingCardType;
+            indicator.textContent = `Draw ${pendingDraw} cards or play a ${cardTypeText} card!`;
+          } else {
+            indicator.textContent = `You must draw ${pendingDraw} cards!`;
+          }
+          drawPile.style.position = 'relative';
+          drawPile.appendChild(indicator);
+          
+          // Add special styling to the current player's area
+          if (currentPlayer === 0) {
+            document.getElementById("player1Area").style.boxShadow = "0 0 15px red";
+          } else {
+            document.getElementById("player2Area").style.boxShadow = "0 0 15px red";
+          }
+        } else {
+          drawBtn.textContent = "Draw Card";
+          // Reset player area styling
+          document.getElementById("player1Area").style.boxShadow = "";
+          document.getElementById("player2Area").style.boxShadow = "";
+        }
+      }
+      
+      // Show pass button if a card was just drawn and there's no pending draw
+      const passBtn = document.getElementById("passBtn") || createPassButton();
+      if (justDrawnCard && pendingDraw === 0) {
+        passBtn.style.display = 'inline-block';
+      } else {
+        passBtn.style.display = 'none';
+      }
+      
+      document.getElementById("winner").textContent = winner ? `Player ${winner + 1} wins!` : '';
+    }
+
+    function nextPlayer(skip = false) {
+      justDrawnCard = null; // Reset justDrawnCard on player change
+      if (skip) {
+        currentPlayer = (currentPlayer + direction + 2) % 2;
+      } else {
+        currentPlayer = (currentPlayer + direction + 2) % 2;
+      }
+    }
+
+    function handleCardClick(e) {
+      if (winner) return;
+      const cardIdx = +e.target.dataset.idx;
+      const player = +e.target.dataset.player;
+      if (player !== currentPlayer) return;
+      const card = hands[player][cardIdx];
+      const top = discardPile[discardPile.length - 1];
+      
+      // Check if the card can be played
+      if (!canPlay(card, top)) return;
+      
+      // Reset drawn card state if player plays a card directly
+      if (justDrawnCard && card !== justDrawnCard) {
+        justDrawnCard = null;
+      }
+      
+      // Play card
+      hands[player].splice(cardIdx, 1);
+      discardPile.push(card);
+      chosenWildCard = null;
+      
+      // Handle Gift card (give opponent a Wild card)
+      if (card.value === "Gift") {
+        const opponentIndex = (player + 1) % 2;
+        const wildCard = { color: "wild", value: "Wild" };
+        hands[opponentIndex].push(wildCard);
+        sortHands(); // Resort hands after adding the card
+        showGiftAnimation(); // Show celebration animation
+        nextPlayer();
+      }
+      // Handle Fairy Gobble card (steal a random card from opponent)
+      else if (card.value === "Fairy Gobble") {
+        const opponentIndex = (player + 1) % 2;
+        
+        // Only take a card if opponent has at least one
+        if (hands[opponentIndex].length > 0) {
+          // Choose a random card from opponent's hand
+          const randomCardIndex = Math.floor(Math.random() * hands[opponentIndex].length);
+          const stolenCard = hands[opponentIndex][randomCardIndex];
+          
+          // Important: We'll remove the card AFTER the animation completes
+          // Just store which card will be removed for now
+          
+          // Show fairy gobble animation with the stolen card and its index
+          showFairyGobbleAnimation(stolenCard, player, randomCardIndex, opponentIndex);
+          
+          // DON'T remove the card here - it will be removed by the animation
+        }
+        
+        nextPlayer();
+      }
+      // Handle special cards
+      else if (card.color === "wild") {
+        mustChooseColor = true;
+        chosenWildCard = null;
+        
+        // Set pendingCardType immediately for Wild+4 to allow stacking
+        if (card.value === "Wild+4") {
+          if (pendingCardType === "Wild+4") {
+            pendingDraw += 4; // Add to existing penalty
+          } else {
+            pendingDraw = 4; // Start new penalty
+            pendingCardType = "Wild+4";
+          }
+          // Don't call nextPlayer() yet - we'll do that after color is chosen
+        }
+        
+        renderColorPicker();
+        return;
+      } else if (card.value === "+2") {
+        // If stacking +2 cards
+        if (pendingCardType === "+2") {
+          pendingDraw += 2; // Add to existing penalty
+        } else {
+          pendingDraw = 2; // Start new penalty
+          pendingCardType = "+2";
+        }
+        nextPlayer();
+      } else if (card.value === "+10") {
+        // If stacking +10 cards
+        if (pendingCardType === "+10") {
+          pendingDraw += 10; // Add to existing penalty
+        } else {
+          pendingDraw = 10; // Start new penalty
+          pendingCardType = "+10";
+        }
+        nextPlayer();
+      } else if (card.value === "+30") {
+        // If stacking +30 cards
+        if (pendingCardType === "+30") {
+          pendingDraw += 30; // Add to existing penalty
+        } else {
+          pendingDraw = 30; // Start new penalty
+          pendingCardType = "+30";
+        }
+        nextPlayer();
+      } else if (card.value === "Skip") {
+        // Do not advance turn; same player goes again
+        justDrawnCard = null; // Reset justDrawnCard
+      } else {
+        // Regular card played - reset any pending draw
+        pendingDraw = 0;
+        pendingCardType = null;
+        nextPlayer();
+      }
+      
+      // If player played the just drawn card, reset it
+      if (card === justDrawnCard) {
+        justDrawnCard = null;
+      }
+      
+      // Check for Uno/Dos announcements after playing a card
+      checkCardAnnouncements();
+      
+      checkWinner();
+      render();
+    }
+
+    function handleDraw() {
+      if (winner || mustChooseColor) return;
+      
+      if (pendingDraw > 0) {
+        // Draw penalty cards
+        for (let i = 0; i < pendingDraw; i++) {
+          drawCard(currentPlayer);
+        }
+        pendingDraw = 0;
+        pendingCardType = null; // Reset the pending card type
+        justDrawnCard = null; // Reset after drawing penalty cards
+        
+        // Don't advance to next player - it's still their turn after drawing penalty cards
+        // They get to play a card if they can
+        
+      } else {
+        // Regular draw - just one card
+        justDrawnCard = drawCard(currentPlayer);
+        
+        // Check if the drawn card can be played
+        const top = discardPile[discardPile.length - 1];
+        if (canPlay(justDrawnCard, top)) {
+          // Show the drawn card and allow playing it
+          render();
+          return; // Don't advance turn yet, let player decide whether to play
+        } else {
+          // Card can't be played, reset and go to next player
+          justDrawnCard = null;
+          nextPlayer();
+        }
+      }
+      render();
+    }
+
+    function drawCard(player) {
+      if (deck.length === 0) {
+        // Reshuffle discard pile except top
+        const top = discardPile.pop();
+        deck = shuffle(discardPile);
+        discardPile = [top];
+      }
+      if (deck.length > 0) {
+        const card = deck.pop();
+        hands[player].push(card);
+        sortHands(); // Sort hands after drawing
+        return card;
+      }
+      return null;
+    }
+
+    function renderColorPicker() {
+      const picker = document.createElement('div');
+      picker.style.display = 'flex';
+      picker.style.justifyContent = 'center';
+      picker.style.gap = '16px';
+      picker.style.margin = '16px 0';
+      COLORS.forEach(color => {
+        const btn = document.createElement('button');
+        btn.textContent = color.charAt(0).toUpperCase() + color.slice(1);
+        btn.style.background = color;
+        btn.style.color = color === 'yellow' ? '#222' : '#fff';
+        btn.style.fontWeight = 'bold';
+        btn.style.fontSize = '1.1em';
+        btn.style.border = currentPlayer === 0 ? '2px solid #fff' : '2px solid #222';
+        btn.style.borderRadius = '6px';
+        btn.style.padding = '10px 18px';
+        btn.onclick = () => chooseWildColor(color);
+        picker.appendChild(btn);
+      });
+      document.getElementById('status').appendChild(picker);
+    }
+
+    function chooseWildColor(color) {
+      chosenWildCard = color;
+      mustChooseColor = false;
+      justDrawnCard = null; // Reset justDrawnCard after color is chosen
+      const last = discardPile[discardPile.length - 1];
+      if (last.value === "Wild+4") {
+        // Only set pendingDraw and pendingCardType if they haven't already been set
+        // This avoids overwriting the values that were set when the card was played
+        if (pendingCardType !== "Wild+4") {
+          pendingDraw = 4;
+          pendingCardType = "Wild+4";
+        }
+        nextPlayer();
+      } else {
+        nextPlayer();
+      }
+      checkWinner();
+      render();
+    }
+
+    function checkWinner() {
+      if (hands[0].length === 0) {
+        winner = 0;
+        showVictoryCelebration(winner);
+      }
+      if (hands[1].length === 0) {
+        winner = 1;
+        showVictoryCelebration(winner);
+      }
+    }
+
+    function showVictoryCelebration(playerIndex) {
+      const overlay = document.getElementById('victoryOverlay');
+      const playerText = document.getElementById('victoryPlayer');
+      
+      playerText.textContent = `Player ${playerIndex + 1} Wins!`;
+      overlay.style.display = 'flex';
+      
+      // Create glitter particles
+      createGlitter();
+      
+      // Set up play again button
+      document.getElementById('playAgainBtn').onclick = function() {
+        overlay.style.display = 'none';
+        deal();
+        render();
+      };
+    }
+    
+    function createGlitter() {
+      // Remove any existing glitter
+      document.querySelectorAll('.glitter').forEach(el => el.remove());
+      
+      // Create 200 glitter particles
+      for (let i = 0; i < 200; i++) {
+        setTimeout(() => {
+          const glitter = document.createElement('div');
+          glitter.className = 'glitter';
+          
+          // Random properties
+          const size = Math.random() * 10 + 5;
+          const left = Math.random() * 100;
+          const delay = Math.random() * 10;
+          const duration = Math.random() * 5 + 3;
+          
+          // Random color (gold, silver, rainbow colors)
+          const colors = ['gold', 'silver', '#e53935', '#fbc02d', '#43a047', '#1e88e5'];
+          const color = colors[Math.floor(Math.random() * colors.length)];
+          
+          // Set styles
+          glitter.style.width = `${size}px`;
+          glitter.style.height = `${size}px`;
+          glitter.style.left = `${left}%`;
+          glitter.style.top = '-20px';
+          glitter.style.background = color;
+          glitter.style.opacity = Math.random() * 0.7 + 0.3;
+          glitter.style.animationDuration = `${duration}s`;
+          glitter.style.animationDelay = `${delay}s`;
+          
+          // Append and remove after animation
+          document.getElementById('victoryOverlay').appendChild(glitter);
+          setTimeout(() => glitter.remove(), (duration + delay) * 1000);
+        }, Math.random() * 3000); // Stagger the creation of glitter
+      }
+      
+      // Continue creating glitter
+      setTimeout(createGlitter, 3000);
+    }
+
+    function createPassButton() {
+      const drawBtn = document.getElementById("drawBtn");
+      const passBtn = document.createElement("button");
+      passBtn.id = "passBtn";
+      passBtn.className = "draw-btn";
+      passBtn.textContent = "Pass";
+      passBtn.style.marginLeft = "10px";
+      passBtn.onclick = function() {
+        justDrawnCard = null;
+        nextPlayer();
+        render();
+      };
+      drawBtn.parentNode.appendChild(passBtn);
+      return passBtn;
+    }
+
+    // Event listeners
+    document.addEventListener('click', function(e) {
+      // Find the closest card element from the clicked element
+      const cardElement = e.target.closest('.card');
+      if (cardElement) {
+        handleCardClick({
+          target: cardElement
+        });
+      }
+    });
+    document.getElementById('drawBtn').onclick = handleDraw;
+
+    // Add event listener for play again button
+    document.getElementById('playAgainBtn').addEventListener('click', function() {
+      document.getElementById('victoryOverlay').style.display = 'none';
+      deal();
+      render();
+    });
+
+    // Track card counts to detect Uno/Dos moments
+    function checkCardAnnouncements() {
+      for (let i = 0; i < 2; i++) {
+        const currentCount = hands[i].length;
+        // Only announce if count just changed to 1 or 2
+        if (currentCount !== lastCardCounts[i]) {
+          if (currentCount === 1 && lastCardCounts[i] > 1) {
+            speakText("Uno!", i);
+          } else if (currentCount === 2 && lastCardCounts[i] > 2) {
+            speakText("Dos!", i);
+          }
+          lastCardCounts[i] = currentCount;
+        }
+      }
+    }
+    
+    function speakText(text, playerIndex) {
+      try {
+        // Cancel any ongoing speech
+        if (speechSynth.speaking) {
+          speechSynth.cancel();
+        }
+        
+        // Create utterance
+        const utterance = new SpeechSynthesisUtterance(text);
+        
+        // Configure voice settings
+        utterance.volume = 1.0;
+        utterance.rate = 1.0;
+        utterance.pitch = playerIndex === 0 ? 1.2 : 0.8; // Different pitch for each player
+        
+        // Try to find a good voice
+        const voices = speechSynth.getVoices();
+        if (voices.length > 0) {
+          // Prefer a female voice for player 1, male for player 2
+          if (playerIndex === 0) {
+            const femaleVoice = voices.find(v => v.name.includes('female') || v.name.includes('Female'));
+            if (femaleVoice) utterance.voice = femaleVoice;
+          } else {
+            const maleVoice = voices.find(v => v.name.includes('male') || v.name.includes('Male'));
+            if (maleVoice) utterance.voice = maleVoice;
+          }
+        }
+        
+        // Speak the text
+        speechSynth.speak(utterance);
+        
+      } catch (error) {
+        console.log("Speech synthesis error:", error);
+      }
+    }
+    
+    // Initialize voices when they're available
+    if (speechSynth.onvoiceschanged !== undefined) {
+      speechSynth.onvoiceschanged = () => console.log("Voices loaded");
+    }
+
+    // Add the gift animation
+    function showGiftAnimation() {
+      // Create temporary overlay for the gift animation
+      const giftOverlay = document.createElement('div');
+      giftOverlay.className = 'gift-overlay';
+      document.body.appendChild(giftOverlay);
+      
+      // Create gift message
+      const giftMessage = document.createElement('div');
+      giftMessage.className = 'gift-message';
+      giftMessage.textContent = 'GIFT CARD PLAYED!';
+      giftOverlay.appendChild(giftMessage);
+      
+      // Create subtitle
+      const giftSubtitle = document.createElement('div');
+      giftSubtitle.className = 'gift-subtitle';
+      giftSubtitle.textContent = 'Opponent receives a Wild card!';
+      giftOverlay.appendChild(giftSubtitle);
+      
+      // Create glitter particles
+      for (let i = 0; i < 100; i++) {
+        setTimeout(() => {
+          const glitter = document.createElement('div');
+          glitter.className = 'glitter';
+          
+          // Random properties
+          const size = Math.random() * 10 + 5;
+          const left = Math.random() * 100;
+          const delay = Math.random() * 2;
+          const duration = Math.random() * 3 + 2;
+          
+          // Rainbow colors for gift celebration
+          const colors = ['#e53935', '#fbc02d', '#43a047', '#1e88e5', '#9c27b0', '#ffeb3b', '#ff9800'];
+          const color = colors[Math.floor(Math.random() * colors.length)];
+          
+          // Set styles
+          glitter.style.width = `${size}px`;
+          glitter.style.height = `${size}px`;
+          glitter.style.left = `${left}%`;
+          glitter.style.top = '-20px';
+          glitter.style.background = color;
+          glitter.style.opacity = Math.random() * 0.7 + 0.3;
+          glitter.style.animationDuration = `${duration}s`;
+          glitter.style.animationDelay = `${delay}s`;
+          
+          giftOverlay.appendChild(glitter);
+        }, Math.random() * 1500);
+      }
+      
+      // Remove overlay after animation
+      setTimeout(() => {
+        giftOverlay.classList.add('fade-out');
+        setTimeout(() => {
+          giftOverlay.remove();
+        }, 1000);
+      }, 3000);
+    }
+
+    // Start game
+    deal();
+    render();
+
+    function renderButterflies(cardColor) {
+      // Return three butterflies in colors other than the card's color
+      const butterflies = [];
+      
+      const colors = ["red", "yellow", "green", "blue"];
+      const otherColors = colors.filter(color => color !== cardColor);
+      
+      const positions = ["top-left", "top-right", "bottom"];
+      
+      otherColors.forEach((color, index) => {
+        butterflies.push(`
+          <div class="butterfly ${color} ${positions[index]}"></div>
+        `);
+      });
+      
+      return butterflies.join('');
+    }
+
+    /* Add the fairy gobble animation */
+    function showFairyGobbleAnimation(targetCard, stealingPlayer, cardIndex, opponentIndex) {
+      console.log("Animation starting for card:", targetCard, "at index:", cardIndex);
+      
+      // First, find the cards in the opponent's hand
+      const opponentHandElement = document.getElementById(`hand${opponentIndex}`);
+      const cardElements = opponentHandElement.querySelectorAll('.card');
+      
+      // Get screen dimensions for animation positions
+      const screenWidth = window.innerWidth;
+      const screenHeight = window.innerHeight;
+      
+      // Get the target element by its index
+      const targetElement = cardElements[cardIndex];
+      
+      // Check if we have a valid target
+      if (!targetElement || cardElements.length === 0) {
+        console.error('No valid target card found for fairy gobble animation');
+        return;
+      }
+      
+      // Get the exact position of the target card now, before any changes
+      const targetRect = targetElement.getBoundingClientRect();
+      const targetX = targetRect.left + targetRect.width/2;
+      const targetY = targetRect.top + targetRect.height/2;
+      
+      // Create temporary overlay
+      const gobbleOverlay = document.createElement('div');
+      gobbleOverlay.className = 'fairy-gobble-overlay';
+      gobbleOverlay.style.opacity = '0';
+      document.body.appendChild(gobbleOverlay);
+      
+      // Fade in the overlay
+      setTimeout(() => {
+        gobbleOverlay.style.opacity = '1';
+      }, 100);
+      
+      // Create a highlight for the targeted card
+      const highlight = document.createElement('div');
+      highlight.className = 'card-target-highlight';
+      highlight.style.width = `${targetRect.width}px`;
+      highlight.style.height = `${targetRect.height}px`;
+      highlight.style.left = `${targetRect.left}px`;
+      highlight.style.top = `${targetRect.top}px`;
+      document.body.appendChild(highlight);
+      
+      // Create main fairy that will eat the card
+      const mainFairy = document.createElement('div');
+      mainFairy.className = 'main-fairy';
+      
+      // Add a mouth to the fairy
+      const fairyMouth = document.createElement('div');
+      fairyMouth.className = 'fairy-mouth';
+      mainFairy.appendChild(fairyMouth);
+      
+      // Start the fairy off-screen from a random direction
+      let startX, startY;
+      const startPos = Math.floor(Math.random() * 4); // 0: top, 1: right, 2: bottom, 3: left
+      
+      switch(startPos) {
+        case 0: // top
+          startX = screenWidth/2;
+          startY = -50;
+          break;
+        case 1: // right
+          startX = screenWidth + 50;
+          startY = screenHeight/2;
+          break;
+        case 2: // bottom
+          startX = screenWidth/2;
+          startY = screenHeight + 50;
+          break;
+        case 3: // left
+          startX = -50;
+          startY = screenHeight/2;
+          break;
+      }
+      
+      mainFairy.style.left = `${startX}px`;
+      mainFairy.style.top = `${startY}px`;
+      document.body.appendChild(mainFairy);
+      
+      // Create message
+      const gobbleMessage = document.createElement('div');
+      gobbleMessage.className = 'fairy-gobble-message';
+      gobbleMessage.textContent = 'FAIRY GOBBLE!';
+      gobbleMessage.style.opacity = '0';
+      gobbleOverlay.appendChild(gobbleMessage);
+      
+      // Create subtitle
+      const gobbleSubtitle = document.createElement('div');
+      gobbleSubtitle.className = 'fairy-gobble-subtitle';
+      gobbleSubtitle.textContent = `Player ${stealingPlayer + 1} stole a card!`;
+      gobbleSubtitle.style.opacity = '0';
+      gobbleOverlay.appendChild(gobbleSubtitle);
+      
+      // Animation sequence:
+      
+      // 1. Show the Fairy Gobble message first
+      setTimeout(() => {
+        gobbleMessage.style.transition = 'opacity 0.5s ease-in-out';
+        gobbleMessage.style.opacity = '1';
+        
+        setTimeout(() => {
+          gobbleSubtitle.style.transition = 'opacity 0.5s ease-in-out';
+          gobbleSubtitle.style.opacity = '1';
+        }, 300);
+      }, 500);
+      
+      // 2. Fly fairy directly to the target card's exact position
+      setTimeout(() => {
+        // Move to just beside the card first (approach position)
+        mainFairy.style.transition = 'all 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)';
+        
+        // Calculate a position just to the left of the card
+        const approachX = targetRect.left - 20;
+        const approachY = targetY - 20; // Center vertically with the card
+        
+        mainFairy.style.left = `${approachX}px`;
+        mainFairy.style.top = `${approachY}px`;
+        
+        // Create fairy trail
+        const trail = setInterval(() => {
+          const trail = document.createElement('div');
+          trail.className = 'fairy-trail';
+          trail.style.left = mainFairy.style.left;
+          trail.style.top = mainFairy.style.top;
+          document.body.appendChild(trail);
+          
+          // Remove trail after animation
+          setTimeout(() => trail.remove(), 1000);
+        }, 100);
+        
+        // Stop trail after reaching target
+        setTimeout(() => clearInterval(trail), 1200);
+      }, 2000); // Start flying after the message appears
+      
+      // 3. Fairy moves onto the card and eats it
+      setTimeout(() => {
+        // Now move directly onto the card
+        mainFairy.style.transition = 'all 0.5s ease-in-out';
+        mainFairy.style.left = `${targetX - 20}px`; // Center on the card
+        mainFairy.style.top = `${targetY - 20}px`;
+        
+        // First pulse the fairy
+        mainFairy.style.transform = 'scale(1.2)';
+        
+        // Then animate mouth eating
+        setTimeout(() => {
+          // Play a chomping sound
+          const chompSound = new Audio('data:audio/mp3;base64,SUQzAwAAAAAAD1RJVDIAAAAHAAADSGFtU1JDAAAAAQAAAENPTQAAAAsAAANlbmcAY2hvbXAAVFBFMQAAAAsAAANlbmcAY2hvbXAAVEFMQgAAAAsAAANlbmcAY2hvbXAAVFlFUgAAAAQAAAMyMDA5AFBSSVYAAE5AAAAAWXV6aGVuYsKpIEFsbCBSaWdodHMgUmVzZXJ2ZWQuAGh0dHA6Ly95dXpoZW5nLnJ1LwBQdWJsaWMgZG9tYWluIHNvdW5kIGJ5IHl1emhlbmfCoQAAAAAA//tAxAAAMahuaIeMALUubMzc+wC6gM9iKLCQGAWBkHigFAgChTZZXZkf8MC51jQmBgZGBiXpjMQ9l//1v///+eZGi4ImMIhANfydYxuEQMmY//+bGMQwMi4yLkZMbxYnNRO9TrCUMCwvECQMADGhInBg33qKSTRKx7CYOtjQGgUQ0BkJtI2/1EEmAQIBgBB1r9bQf/4GAYoJgigKbP/pRjZ58HiQiD3DZwwSB2wYLhf/+uDiECAJ9QTZs1PckLxZGQ0Zv+Jmo6JCpUCQEp+3YFQQT0pBcP/7IMQRgCZNlUteaIAAhCBr79EQAIcBRrXVBD2PZf2IZbmgQQDQpyU0wOGAkU0D5ckkxMYYxxgBDooFx0iIy1NKvmKlVVrOBAgOkuZO1lVSV5ywEEUJpuZiIOQ0WQ0RpQHAgWEwoZv2m6dKm5UKRoqHr1mPRCINEhQZOGj5sy6UdP04DgkEFQQXHOQIUhkiEyhGOuUuWBYkORkmFAcBAwPECOlWNVXZjMXFzm5QaFj0UxAWCJcZdYM5NVrRvP/7IMQegDSNTwR5gYYilqmgDzzRAM00KAwHjhJrq5oJ15g5yEgEAxASLHDJ+7uayWfEhQABgVGA0NBQAEwaCAYBAYIAUMAgLQIDBAMAwoGcpdU9zXOr1lqtFpVbWYtUDQsKQsJCwkIQoAhL//8LAoAhCICIMfCzGps9a1VndZzVVJU1qM9mZ6K81UWIEExAQKiQcLBhR/+gIAgcOFSg0dRmWf//9aK6//sgxCkAJIGfAvnmCQJOnp/fMGAAEqsGBcXLgcJAgFGl/4W5yMDh4fRXCi8QLnN7k73f0FYKr/v9fVXS51nIGVExBTUUzLjk5LjWqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq//sQxEGAFGVBJa5hrYJcJuA/BBMQqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq');
+          chompSound.volume = 0.5;
+          chompSound.play().catch(e => console.log("Audio play error:", e));
+          
+          fairyMouth.classList.add('eating');
+          
+          // Make the fairy "chew" by pulsing a few times
+          let chewCount = 0;
+          const chewing = setInterval(() => {
+            mainFairy.style.transform = chewCount % 2 === 0 ? 'scale(1.3)' : 'scale(1.1)';
+            chewCount++;
+            if (chewCount > 5) clearInterval(chewing);
+          }, 150);
+          
+          // 4. NOW actually remove the card from the opponent's hand
+          // Wait until the chewing animation is almost done
+          setTimeout(() => {
+            console.log("Removing card from hand array at index:", cardIndex);
+            
+            // Actually remove the card from the hand array
+            hands[opponentIndex].splice(cardIndex, 1);
+            
+            // Make the card visually disappear (as if being eaten)
+            targetElement.style.transition = 'all 0.3s ease-out';
+            targetElement.style.transform = 'scale(0)';
+            targetElement.style.opacity = '0';
+            
+            // Hide the highlight
+            highlight.style.opacity = '0';
+            setTimeout(() => highlight.remove(), 300);
+            
+            // Re-render the cards to update the UI
+            render();
+          }, 800);
+        }, 300);
+      }, 3200);
+      
+      // 5. Fairy flies away with the card
+      setTimeout(() => {
+        mainFairy.style.transition = 'all 1.5s ease-in-out';
+        // Fly in a random direction off screen
+        const exitPos = Math.floor(Math.random() * 4); // 0: top, 1: right, 2: bottom, 3: left
+        
+        switch(exitPos) {
+          case 0: // top
+            mainFairy.style.left = `${screenWidth / 2}px`;
+            mainFairy.style.top = `${-50}px`;
+            break;
+          case 1: // right
+            mainFairy.style.left = `${screenWidth + 50}px`;
+            mainFairy.style.top = `${screenHeight / 2}px`;
+            break;
+          case 2: // bottom
+            mainFairy.style.left = `${screenWidth / 2}px`;
+            mainFairy.style.top = `${screenHeight + 50}px`;
+            break;
+          case 3: // left
+            mainFairy.style.left = `${-50}px`;
+            mainFairy.style.top = `${screenHeight / 2}px`;
+            break;
+        }
+        
+        mainFairy.style.opacity = '0';
+        
+        // Create tiny trailing fairies that follow the main fairy's exit
+        for (let i = 0; i < 5; i++) {
+          setTimeout(() => {
+            const tinyFairy = document.createElement('div');
+            tinyFairy.className = 'fairy';
+            tinyFairy.style.width = '15px';
+            tinyFairy.style.height = '15px';
+            tinyFairy.style.left = `${targetX - 10 + Math.random() * 20}px`;
+            tinyFairy.style.top = `${targetY - 10 + Math.random() * 20}px`;
+            tinyFairy.style.zIndex = '1009';
+            tinyFairy.style.transition = 'all 1.2s ease-in-out';
+            document.body.appendChild(tinyFairy);
+            
+            // Follow the main fairy's exit
+            setTimeout(() => {
+              tinyFairy.style.left = mainFairy.style.left;
+              tinyFairy.style.top = mainFairy.style.top;
+              tinyFairy.style.opacity = '0';
+              setTimeout(() => tinyFairy.remove(), 1200);
+            }, 100);
+          }, i * 150);
+        }
+      }, 5500);
+      
+      // Create supporting fairies that fly around
+      const fairyCount = 20;
+      
+      for (let i = 0; i < fairyCount; i++) {
+        setTimeout(() => {
+          const fairy = document.createElement('div');
+          fairy.className = 'fairy';
+          
+          // Random starting position outside the overlay
+          const startPos = Math.floor(Math.random() * 4); // 0: top, 1: right, 2: bottom, 3: left
+          let startX, startY;
+          
+          switch(startPos) {
+            case 0: // top
+              startX = Math.random() * screenWidth;
+              startY = -20;
+              break;
+            case 1: // right
+              startX = screenWidth + 20;
+              startY = Math.random() * screenHeight;
+              break;
+            case 2: // bottom
+              startX = Math.random() * screenWidth;
+              startY = screenHeight + 20;
+              break;
+            case 3: // left
+              startX = -20;
+              startY = Math.random() * screenHeight;
+              break;
+          }
+          
+          fairy.style.left = `${startX}px`;
+          fairy.style.top = `${startY}px`;
+          gobbleOverlay.appendChild(fairy);
+          
+          // Create a unique animation to move toward center then out
+          const targetX = screenWidth / 2 + (Math.random() * 200 - 100);
+          const targetY = screenHeight / 2 + (Math.random() * 200 - 100);
+          
+          // Leave fairy trails
+          const createTrail = setInterval(() => {
+            const trail = document.createElement('div');
+            trail.className = 'fairy-trail';
+            trail.style.left = fairy.style.left;
+            trail.style.top = fairy.style.top;
+            gobbleOverlay.appendChild(trail);
+            
+            // Remove trail after animation
+            setTimeout(() => trail.remove(), 1000);
+          }, 150);
+          
+          // Move fairy to center
+          setTimeout(() => {
+            fairy.style.transform = `translate(${targetX - startX}px, ${targetY - startY}px)`;
+            
+            // Move out after reaching center
+            setTimeout(() => {
+              const exitX = Math.random() * screenWidth;
+              const exitY = Math.random() * screenHeight;
+              fairy.style.transform = `translate(${exitX - startX}px, ${exitY - startY}px)`;
+              fairy.style.opacity = '0';
+              clearInterval(createTrail);
+              
+              setTimeout(() => fairy.remove(), 500);
+            }, 2000);
+          }, 100);
+        }, 2000 + Math.random() * 2000); // Start during main animation
+      }
+      
+      // Remove overlay after animation
+      setTimeout(() => {
+        gobbleOverlay.style.opacity = '0';
+        setTimeout(() => {
+          gobbleOverlay.remove();
+          mainFairy.remove();
+          if (highlight) highlight.remove();
+        }, 1000);
+      }, 7000);
+    }
+  </script>
+</body>
+</html>
