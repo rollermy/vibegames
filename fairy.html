@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Fairy Path Game</title>
+  <style>
+    body { font-family: sans-serif; background: #f8f8ff; }
+    .board { display: grid; grid-template-columns: repeat(8, 40px); grid-gap: 2px; margin: 20px 0; }
+    .cell { width: 40px; height: 40px; background: #fff; border: 1px solid #ccc; display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; }
+    .cell.occupied { cursor: default; }
+    .tile-svg { width: 36px; height: 36px; }
+    .current-tile { margin: 10px 0; display: flex; align-items: center; }
+    .rotate-btn { margin-left: 10px; }
+    .scores { margin: 10px 0; }
+    .player-score { display: inline-block; margin-right: 20px; }
+    .current-player { font-weight: bold; }
+    .end-game { font-size: 1.2em; color: #333; margin: 20px 0; }
+  </style>
+</head>
+<body>
+<h2>Fairy Path Game</h2>
+<div class="scores" id="scores"></div>
+<div id="currentPlayer"></div>
+<div class="current-tile" id="currentTile"></div>
+<div class="board" id="board"></div>
+<div class="end-game" id="endGame" style="display:none"></div>
+<script>
+// --- Game Data Structures ---
+const PLAYER_COLORS = ['blue', 'orange'];
+const NUM_PLAYERS = 2;
+const BOARD_SIZE = 8;
+const players = PLAYER_COLORS.map(color => ({ color, score: 0 }));
+let currentPlayer = 0;
+// All paths are neutral (no color). All tiles have at least 2 paths. Some cross, some overlap (over/under).
+// For over/under, we can represent with a 'cross' type, and visually draw two lines crossing.
+const TILE_TYPES = [
+  // --- Crossing/Connecting Tiles (no dead ends) ---
+  { paths: [ // Cross
+      {from: 'N', to: 'S', hasHouse: false},
+      {from: 'E', to: 'W', hasHouse: false}
+    ], houses: [] },
+  { paths: [ // X curve
+      {from: 'N', to: 'E', hasHouse: true},
+      {from: 'S', to: 'W', hasHouse: true}
+    ], houses: ['E', 'W'] },
+  { paths: [ // X curve, no house
+      {from: 'N', to: 'E', hasHouse: false},
+      {from: 'S', to: 'W', hasHouse: false}
+    ], houses: [] },
+  { paths: [ // Cross with houses
+      {from: 'N', to: 'S', hasHouse: true},
+      {from: 'E', to: 'W', hasHouse: true}
+    ], houses: ['N', 'E', 'S', 'W'] },
+  { paths: [ // T
+      {from: 'N', to: 'S', hasHouse: false},
+      {from: 'E', to: 'S', hasHouse: false}
+    ], houses: [] },
+  { paths: [ // T
+      {from: 'N', to: 'E', hasHouse: false},
+      {from: 'S', to: 'E', hasHouse: false}
+    ], houses: [] },
+  // --- Dead End Tiles (at least one path ends in the tile) ---
+  { paths: [ // L with dead end
+      {from: 'N', to: 'E', hasHouse: false},
+      {from: 'S', to: null, hasHouse: true}
+    ], houses: ['S'] },
+  { paths: [ // L with dead end
+      {from: 'E', to: 'S', hasHouse: true},
+      {from: 'W', to: null, hasHouse: false}
+    ], houses: ['S'] },
+  { paths: [ // T with dead end
+      {from: 'N', to: 'S', hasHouse: false},
+      {from: 'E', to: null, hasHouse: true}
+    ], houses: ['E'] },
+  { paths: [ // T with dead end
+      {from: 'N', to: null, hasHouse: true},
+      {from: 'E', to: 'W', hasHouse: false}
+    ], houses: ['N'] },
+  { paths: [ // Double dead end
+      {from: 'N', to: null, hasHouse: true},
+      {from: 'S', to: null, hasHouse: true}
+    ], houses: ['N', 'S'] },
+];
+const board = Array.from({length: BOARD_SIZE}, () => Array(BOARD_SIZE).fill(null));
+let tileDeck = [];
+function shuffleDeck() {
+  tileDeck = [];
+  for (let i = 0; i < 32; i++) {
+    const type = TILE_TYPES[Math.floor(Math.random() * TILE_TYPES.length)];
+    tileDeck.push({
+      ...JSON.parse(JSON.stringify(type)),
+      rotation: [0, 90, 180, 270][Math.floor(Math.random() * 4)]
+    });
+  }
+  for (let i = tileDeck.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [tileDeck[i], tileDeck[j]] = [tileDeck[j], tileDeck[i]];
+  }
+}
+function nextPlayer() { currentPlayer = (currentPlayer + 1) % NUM_PLAYERS; }
+function drawTile() { return tileDeck.pop(); }
+function rotateTile(tile, direction) { tile.rotation = (tile.rotation + 360 + direction * 90) % 360; }
+function placeTile(x, y, tile) {
+  if (board[y][x] !== null) return false;
+  board[y][x] = JSON.parse(JSON.stringify(tile));
+  checkCompletedPaths(x, y, tile);
+  return true;
+}
+function neighbor(x, y, dir) {
+  switch (dir) {
+    case 'N': return [x, y-1];
+    case 'S': return [x, y+1];
+    case 'E': return [x+1, y];
+    case 'W': return [x-1, y];
+  }
+}
+function rotateDir(dir, rotation) {
+  const dirs = ['N', 'E', 'S', 'W'];
+  let idx = dirs.indexOf(dir);
+  if (idx === -1) return dir;
+  idx = (idx + rotation/90) % 4;
+  return dirs[idx];
+}
+function checkCompletedPaths(x, y, tile) {
+  tile.paths.forEach(path => {
+    // All paths are neutral, so all players can score
+    let visited = new Set();
+    let houses = [];
+    let ends = [];
+    function follow(cx, cy, fromDir) {
+      const key = `${cx},${cy},${fromDir}`;
+      if (visited.has(key)) return;
+      visited.add(key);
+      const t = board[cy][cx];
+      if (!t) return;
+      for (const p of t.paths) {
+        let pFrom = rotateDir(p.from, t.rotation);
+        let pTo = p.to ? rotateDir(p.to, t.rotation) : null;
+        if (pFrom === fromDir || pTo === fromDir) {
+          if (p.hasHouse && t.houses && t.houses.includes(fromDir)) {
+            houses.push({x: cx, y: cy, dir: fromDir});
+          }
+          let nextDir = (pFrom === fromDir) ? pTo : pFrom;
+          if (!nextDir) {
+            ends.push({x: cx, y: cy, dir: fromDir});
+            return;
+          }
+          const [nx, ny] = neighbor(cx, cy, nextDir);
+          if (nx < 0 || ny < 0 || nx >= BOARD_SIZE || ny >= BOARD_SIZE) {
+            ends.push({x: cx, y: cy, dir: nextDir});
+            return;
+          }
+          follow(nx, ny, nextDir);
+          return;
+        }
+      }
+      ends.push({x: cx, y: cy, dir: fromDir});
+    }
+    let fromA = rotateDir(path.from, tile.rotation);
+    let fromB = path.to ? rotateDir(path.to, tile.rotation) : null;
+    follow(x, y, fromA);
+    if (fromB) follow(x, y, fromB);
+    if (ends.length === 2 && houses.length > 0) {
+      players[currentPlayer].score += houses.length;
+    }
+  });
+}
+function startGame() {
+  shuffleDeck();
+  for (let y = 0; y < BOARD_SIZE; y++) {
+    for (let x = 0; x < BOARD_SIZE; x++) {
+      board[y][x] = null;
+    }
+  }
+  for (const p of players) p.score = 0;
+  currentPlayer = 0;
+  currentTile = drawTile();
+  updateUI();
+}
+// --- UI ---
+let currentTile = null;
+function updateUI() {
+  const scoresDiv = document.getElementById('scores');
+  scoresDiv.innerHTML = players.map((p, i) => `<span class="player-score" style="color:${p.color}">${p.color}: ${p.score}</span>`).join('');
+  document.getElementById('currentPlayer').innerHTML = `Current Player: <span class="current-player" style="color:${players[currentPlayer].color}">${players[currentPlayer].color}</span>`;
+  const ctDiv = document.getElementById('currentTile');
+  ctDiv.innerHTML = '';
+  if (currentTile) {
+    ctDiv.appendChild(renderTileSVG(currentTile));
+    const btn = document.createElement('button');
+    btn.textContent = 'Rotate';
+    btn.className = 'rotate-btn';
+    btn.onclick = () => { rotateTile(currentTile, 1); updateUI(); };
+    ctDiv.appendChild(btn);
+  }
+  const boardDiv = document.getElementById('board');
+  boardDiv.innerHTML = '';
+  for (let y = 0; y < BOARD_SIZE; y++) {
+    for (let x = 0; x < BOARD_SIZE; x++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell' + (board[y][x] ? ' occupied' : '');
+      if (board[y][x]) {
+        cell.appendChild(renderTileSVG(board[y][x]));
+      } else if (currentTile && !isGameOver()) {
+        cell.onclick = () => {
+          if (placeTile(x, y, currentTile)) {
+            if (isGameOver()) {
+              showEndGame();
+              updateUI();
+              return;
+            }
+            nextPlayer();
+            currentTile = drawTile();
+            updateUI();
+          }
+        };
+      }
+      boardDiv.appendChild(cell);
+    }
+  }
+}
+function renderTileSVG(tile) {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 36 36');
+  svg.classList.add('tile-svg');
+  const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  rect.setAttribute('x', 0); rect.setAttribute('y', 0); rect.setAttribute('width', 36); rect.setAttribute('height', 36); rect.setAttribute('fill', '#f5f5dc');
+  rect.setAttribute('rx', 4);
+  svg.appendChild(rect);
+  // Draw all paths in gray
+  tile.paths.forEach(path => {
+    let from = rotateDir(path.from, tile.rotation);
+    let to = path.to ? rotateDir(path.to, tile.rotation) : null;
+    let color = '#888';
+    let [x1, y1] = dirToXY(from);
+    let [x2, y2] = to ? dirToXY(to) : [18, 18];
+    if (!to) {
+      // Dead end: draw from edge to a point short of center
+      const cx = 18, cy = 18;
+      const dx = cx - x1, dy = cy - y1;
+      const shorten = 10;
+      const len = Math.sqrt(dx*dx + dy*dy);
+      const ratio = (len - shorten) / len;
+      const ex = x1 + dx * ratio;
+      const ey = y1 + dy * ratio;
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', x1); line.setAttribute('y1', y1); line.setAttribute('x2', ex); line.setAttribute('y2', ey);
+      line.setAttribute('stroke', color); line.setAttribute('stroke-width', 4); line.setAttribute('stroke-linecap', 'round');
+      svg.appendChild(line);
+      // Draw a filled circle at the dead end
+      const endCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      endCircle.setAttribute('cx', ex); endCircle.setAttribute('cy', ey); endCircle.setAttribute('r', 3.5);
+      endCircle.setAttribute('fill', '#888');
+      svg.appendChild(endCircle);
+      // House if present
+      if (path.hasHouse) {
+        // Place house offset from the end of the path
+        const houseOffset = 7;
+        const hx = ex + (ex - x1) / len * houseOffset;
+        const hy = ey + (ey - y1) / len * houseOffset;
+        // Draw driveway
+        const driveway = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        driveway.setAttribute('x1', ex); driveway.setAttribute('y1', ey); driveway.setAttribute('x2', hx); driveway.setAttribute('y2', hy);
+        driveway.setAttribute('stroke', '#b5651d'); driveway.setAttribute('stroke-width', 2);
+        svg.appendChild(driveway);
+        // Draw house
+        const house = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        house.setAttribute('cx', hx); house.setAttribute('cy', hy); house.setAttribute('r', 4);
+        house.setAttribute('fill', '#b5651d');
+        svg.appendChild(house);
+      }
+    } else {
+      // Normal path
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', x1); line.setAttribute('y1', y1); line.setAttribute('x2', x2); line.setAttribute('y2', y2);
+      line.setAttribute('stroke', color); line.setAttribute('stroke-width', 4); line.setAttribute('stroke-linecap', 'round');
+      svg.appendChild(line);
+      if (path.hasHouse) {
+        // Place house offset from the end of the path
+        const houseOffset = 7;
+        const hx = x2 + (x2 - x1) / Math.sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1)) * houseOffset;
+        const hy = y2 + (y2 - y1) / Math.sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1)) * houseOffset;
+        // Draw driveway
+        const driveway = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        driveway.setAttribute('x1', x2); driveway.setAttribute('y1', y2); driveway.setAttribute('x2', hx); driveway.setAttribute('y2', hy);
+        driveway.setAttribute('stroke', '#b5651d'); driveway.setAttribute('stroke-width', 2);
+        svg.appendChild(driveway);
+        // Draw house
+        const house = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        house.setAttribute('cx', hx); house.setAttribute('cy', hy); house.setAttribute('r', 4);
+        house.setAttribute('fill', '#b5651d');
+        svg.appendChild(house);
+      }
+    }
+  });
+  return svg;
+}
+function dirToXY(dir) {
+  switch (dir) {
+    case 'N': return [18, 2];
+    case 'S': return [18, 34];
+    case 'E': return [34, 18];
+    case 'W': return [2, 18];
+    default: return [18, 18];
+  }
+}
+function isGameOver() {
+  if (tileDeck.length === 0) return true;
+  for (let y = 0; y < BOARD_SIZE; y++)
+    for (let x = 0; x < BOARD_SIZE; x++)
+      if (!board[y][x]) return false;
+  return true;
+}
+function showEndGame() {
+  const endDiv = document.getElementById('endGame');
+  endDiv.style.display = '';
+  let max = Math.max(...players.map(p => p.score));
+  let winners = players.filter(p => p.score === max);
+  if (winners.length === 1) {
+    endDiv.textContent = `Game Over! Winner: ${winners[0].color} (${winners[0].score} points)`;
+    endDiv.style.color = winners[0].color;
+  } else {
+    endDiv.textContent = `Game Over! Tie: ${winners.map(w => w.color).join(', ')} (${max} points)`;
+    endDiv.style.color = '#333';
+  }
+}
+startGame();
+</script>
+</body>
+</html>

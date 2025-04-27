@@ -1157,10 +1157,20 @@
       // Handle Gift card (give opponent a Wild card)
       if (card.value === "Gift") {
         const opponentIndex = (player + 1) % 2;
-        const wildCard = { color: "wild", value: "Wild" };
-        hands[opponentIndex].push(wildCard);
+        
+        // Randomly choose between Wild, +10, and +2 cards
+        const giftOptions = [
+          { color: "wild", value: "Wild" },
+          { color: COLORS[Math.floor(Math.random() * COLORS.length)], value: "+10" },
+          { color: COLORS[Math.floor(Math.random() * COLORS.length)], value: "+2" }
+        ];
+        
+        const randomGift = giftOptions[Math.floor(Math.random() * giftOptions.length)];
+        hands[opponentIndex].push(randomGift);
         sortHands(); // Resort hands after adding the card
-        showGiftAnimation(); // Show celebration animation
+        
+        // Update the animation to show what card was gifted
+        showGiftAnimation(randomGift); 
         nextPlayer();
       }
       // Handle Fairy Gobble card (steal a random card from opponent)
@@ -1505,7 +1515,7 @@
     }
 
     // Add the gift animation
-    function showGiftAnimation() {
+    function showGiftAnimation(giftedCard) {
       // Create temporary overlay for the gift animation
       const giftOverlay = document.createElement('div');
       giftOverlay.className = 'gift-overlay';
@@ -1517,11 +1527,33 @@
       giftMessage.textContent = 'GIFT CARD PLAYED!';
       giftOverlay.appendChild(giftMessage);
       
-      // Create subtitle
+      // Create subtitle with the gifted card type
       const giftSubtitle = document.createElement('div');
       giftSubtitle.className = 'gift-subtitle';
-      giftSubtitle.textContent = 'Opponent receives a Wild card!';
+      
+      const cardDescription = giftedCard.value + (giftedCard.color !== "wild" ? ` (${giftedCard.color})` : "");
+      giftSubtitle.textContent = `Opponent receives a ${cardDescription} card!`;
       giftOverlay.appendChild(giftSubtitle);
+      
+      // Create mini visual of the gifted card
+      const miniCard = document.createElement('div');
+      miniCard.className = `card ${giftedCard.color}`;
+      miniCard.style.width = '80px';
+      miniCard.style.height = '120px';
+      miniCard.style.margin = '20px auto';
+      miniCard.style.fontSize = '1.5em';
+      miniCard.innerHTML = `<span>${giftedCard.value}</span>`;
+      
+      // Add sparkles to wild card
+      if (giftedCard.color === "wild") {
+        miniCard.innerHTML += `
+          <div class="sparkle-1" style="top: 70%; left: 30%; animation-delay: 0.5s;"></div>
+          <div class="sparkle-2" style="top: 20%; left: 70%; animation-delay: 1.5s;"></div>
+          <div class="sparkle-3" style="top: 45%; left: 60%; animation-delay: 2.5s;"></div>
+        `;
+      }
+      
+      giftOverlay.appendChild(miniCard);
       
       // Create glitter particles
       for (let i = 0; i < 100; i++) {
@@ -1559,7 +1591,7 @@
         setTimeout(() => {
           giftOverlay.remove();
         }, 1000);
-      }, 3000);
+      }, 4000);
     }
 
     // Start game
@@ -1734,7 +1766,7 @@
         // Then animate mouth eating
         setTimeout(() => {
           // Play a chomping sound
-          const chompSound = new Audio('data:audio/mp3;base64,SUQzAwAAAAAAD1RJVDIAAAAHAAADSGFtU1JDAAAAAQAAAENPTQAAAAsAAANlbmcAY2hvbXAAVFBFMQAAAAsAAANlbmcAY2hvbXAAVEFMQgAAAAsAAANlbmcAY2hvbXAAVFlFUgAAAAQAAAMyMDA5AFBSSVYAAE5AAAAAWXV6aGVuYsKpIEFsbCBSaWdodHMgUmVzZXJ2ZWQuAGh0dHA6Ly95dXpoZW5nLnJ1LwBQdWJsaWMgZG9tYWluIHNvdW5kIGJ5IHl1emhlbmfCoQAAAAAA//tAxAAAMahuaIeMALUubMzc+wC6gM9iKLCQGAWBkHigFAgChTZZXZkf8MC51jQmBgZGBiXpjMQ9l//1v///+eZGi4ImMIhANfydYxuEQMmY//+bGMQwMi4yLkZMbxYnNRO9TrCUMCwvECQMADGhInBg33qKSTRKx7CYOtjQGgUQ0BkJtI2/1EEmAQIBgBB1r9bQf/4GAYoJgigKbP/pRjZ58HiQiD3DZwwSB2wYLhf/+uDiECAJ9QTZs1PckLxZGQ0Zv+Jmo6JCpUCQEp+3YFQQT0pBcP/7IMQRgCZNlUteaIAAhCBr79EQAIcBRrXVBD2PZf2IZbmgQQDQpyU0wOGAkU0D5ckkxMYYxxgBDooFx0iIy1NKvmKlVVrOBAgOkuZO1lVSV5ywEEUJpuZiIOQ0WQ0RpQHAgWEwoZv2m6dKm5UKRoqHr1mPRCINEhQZOGj5sy6UdP04DgkEFQQXHOQIUhkiEyhGOuUuWBYkORkmFAcBAwPECOlWNVXZjMXFzm5QaFj0UxAWCJcZdYM5NVrRvP/7IMQegDSNTwR5gYYilqmgDzzRAM00KAwHjhJrq5oJ15g5yEgEAxASLHDJ+7uayWfEhQABgVGA0NBQAEwaCAYBAYIAUMAgLQIDBAMAwoGcpdU9zXOr1lqtFpVbWYtUDQsKQsJCwkIQoAhL//8LAoAhCICIMfCzGps9a1VndZzVVJU1qM9mZ6K81UWIEExAQKiQcLBhR/+gIAgcOFSg0dRmWf//9aK6//sgxCkAJIGfAvnmCQJOnp/fMGAAEqsGBcXLgcJAgFGl/4W5yMDh4fRXCi8QLnN7k73f0FYKr/v9fVXS51nIGVExBTUUzLjk5LjWqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq//sQxEGAFGVBJa5hrYJcJuA/BBMQqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq');
+          const chompSound = new Audio('data:audio/mp3;base64,SUQzAwAAAAAAD1RJVDIAAAAHAAADSGFtU1JDAAAAAQAAAENPTQAAAAsAAANlbmcAY2hvbXAAVFBFMQAAAAsAAANlbmcAY2hvbXAAVEFMQgAAAAsAAANlbmcAY2hvbXAAVFlFUgAAAAQAAAMyMDA5AFBSSVYAAE5AAAAAWXV6aGVuYsKpIEFsbCBSaWdodHMgUmVzZXJ2ZWQuAGh0dHA6Ly95dXpoZW5nLnJ1LwBQdWJsaWMgZG9tYWluIHNvdW5kIGJ5IHl1emhlbmfCoQAAAAAA//tAxAAAMahuaIeMALUubMzc+wC6gM9iKLCQGAWBkHigFAgChTZZXZkf8MC51jQmBgZGBiXpjMQ9l//1v///+eZGi4ImMIhANfydYxuEQMmY//+bGMQwMi4yLkZMbxYnNRO9TrCUMCwvECQMADGhInBg33qKSTRKx7CYOtjQGgUQ0BkJtI2/1EEmAQIBgBB1r9bQf/4GAYoJgigKbP/pRjZ58HiQiD3DZwwSB2wYLhf/+uDiECAJ9QTZs1PckLxZGQ0Zv+Jmo6JCpUCQEp+3YFQQT0pBcP/7IMQRgCZNlUteaIAAhCBr79EQAIcBRrXVBD2PZf2IZbmgQQDQpyU0wOGAkU0D5ckkxMYYxxgBDooFx0iIy1NKvmKlVVrOBAgOkuZO1lVSV5ywEEUJpuZiIOQ0WQ0RpQHAgWEwoZv2m6dKm5UKRoqHr1mPRCINEhQZOGj5sy6UdP04DgkEFQQXHOQIUhkiEyhGOuUuWBYkORkmFAcBAwPECOlWNVXZjMXFzm5QaFj0UxAWCJcZdYM5NVrRvP/7IMQegDSNTwR5gYYilqmgDzzRAM00KAwHjhJrq5oJ15g5yEgEAxASLHDJ+7uayWfEhQABgVGA0NBQAEwaCAYBAYIAUMAgLQIDBAMAwoGcpdU9zXOr1lqtFpVbWYtUDQsKQsJCwkIQoAhL//8LAoAhCICIMfCzGps9a1VndZzVVJU1qM9mZ6K81UWIEExAQKiQcLBhR/+gIAgcOFSg0dRmWf//9aK6//sgxCkAJIGfAvnmCQJOnp/fMGAAEqsGBcXLgcJAgFGl/4W5yMDh4fRXCi8QLnN7k73f0FYKr/v9fVXS51nIGVExBTUUzLjk5LjWqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq//sQxEGAFGVBJa5hrYJcJuA/BBMQqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq');
           chompSound.volume = 0.5;
           chompSound.play().catch(e => console.log("Audio play error:", e));
           

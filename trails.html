@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fairy Trails Game</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f0f0f0;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1 {
+      margin-top: 20px;
+    }
+    #game {
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #board {
+      display: grid;
+      grid-template-columns: repeat(11, 40px);
+      grid-template-rows: repeat(11, 40px);
+      gap: 2px;
+      background: #888;
+      border: 2px solid #444;
+      margin-bottom: 20px;
+    }
+    .cell {
+      width: 40px;
+      height: 40px;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    .cell.occupied {
+      cursor: default;
+    }
+    .tile {
+      width: 36px;
+      height: 36px;
+      border-radius: 4px;
+      background: #e0e0e0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      z-index: 1;
+    }
+    .trail {
+      stroke-width: 4;
+      fill: none;
+    }
+    .trail.fairy {
+      stroke: #e57373;
+    }
+    .trail.goblin {
+      stroke: #64b5f6;
+    }
+    .house {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      position: absolute;
+      z-index: 2;
+    }
+    .house.fairy {
+      background: #e57373;
+      border: 2px solid #b71c1c;
+    }
+    .house.goblin {
+      background: #64b5f6;
+      border: 2px solid #0d47a1;
+    }
+    #controls {
+      margin-bottom: 10px;
+    }
+    #tile-preview {
+      margin-bottom: 10px;
+    }
+    #status {
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+    button {
+      padding: 6px 16px;
+      font-size: 16px;
+      border-radius: 4px;
+      border: none;
+      background: #444;
+      color: #fff;
+      cursor: pointer;
+      margin-right: 8px;
+    }
+    button:disabled {
+      background: #aaa;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <h1>Fairy Trails</h1>
+  <div id="game">
+    <div id="status"></div>
+    <div id="tile-preview"></div>
+    <div id="controls">
+      <button id="rotate-btn">Rotate Tile</button>
+      <button id="end-turn-btn" disabled>End Turn</button>
+      <button id="restart-btn">Restart Game</button>
+    </div>
+    <div id="board"></div>
+  </div>
+  <script>
+    // --- Game Constants ---
+    const BOARD_SIZE = 11;
+    const CENTER = Math.floor(BOARD_SIZE / 2);
+    const PLAYERS = [
+      { name: 'Fairy', color: 'fairy', house: 'fairy' },
+      { name: 'Goblin', color: 'goblin', house: 'goblin' }
+    ];
+    // Tile definitions: Each tile has 4 sides (N, E, S, W), each side is 'f' (fairy) or 'g' (goblin)
+    // and a set of trails connecting sides (e.g., [[0,2],[1,3]] means N connects to S, E connects to W)
+    // For simplicity, we'll use a small set of tile types
+    const TILE_TYPES = [
+      // Dead ends: red N, blue S
+      { sides: ['f','g','g','g'], trails: [[0]], houses: [0] }, // red dead end with house
+      { sides: ['g','f','g','g'], trails: [[1]], houses: [1] }, // blue dead end with house
+      { sides: ['g','g','f','g'], trails: [[2]], houses: [2] }, // red dead end with house
+      { sides: ['g','g','g','f'], trails: [[3]], houses: [3] }, // blue dead end with house
+
+      // Dead ends: red N, blue E
+      { sides: ['f','g','g','g'], trails: [[0],[1]], houses: [0,1] },
+      // Dead ends: red S, blue W
+      { sides: ['g','g','f','g'], trails: [[2],[3]], houses: [2,3] },
+
+      // Straight: red N-S, blue E-W
+      { sides: ['f','g','f','g'], trails: [[0,2],[1,3]], houses: [] },
+      // Straight: blue N-S, red E-W
+      { sides: ['g','f','g','f'], trails: [[0,2],[1,3]], houses: [] },
+
+      // Curve: red N-E, blue S-W
+      { sides: ['f','f','g','g'], trails: [[0,1],[2,3]], houses: [] },
+      // Curve: blue N-E, red S-W
+      { sides: ['g','g','f','f'], trails: [[0,1],[2,3]], houses: [] },
+      // Curve: red E-S, blue W-N
+      { sides: ['g','f','f','g'], trails: [[1,2],[3,0]], houses: [] },
+      // Curve: blue E-S, red W-N
+      { sides: ['f','g','g','f'], trails: [[1,2],[3,0]], houses: [] },
+
+      // T-junction: red N-E-S, blue W
+      { sides: ['f','f','f','g'], trails: [[0,1],[1,2]], houses: [0,1] },
+      // T-junction: blue S-W-N, red E
+      { sides: ['g','f','g','g'], trails: [[2,3],[3,0]], houses: [2,3] },
+
+      // Cross: red N-S, blue E-W
+      { sides: ['f','g','f','g'], trails: [[0,2],[1,3]], houses: [] },
+    ];
+    // --- Game State ---
+    let board = [];
+    let currentPlayer = 0;
+    let tileDeck = [];
+    let currentTile = null;
+    let currentRotation = 0;
+    let houses = [[], []]; // [fairyHouses, goblinHouses]
+    let placedThisTurn = false;
+    // --- Utility Functions ---
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+    function rotateTile(tile, rotation) {
+      // Rotate sides and trails
+      const sides = tile.sides.map((_, i) => tile.sides[(i - rotation + 4) % 4]);
+      const trails = tile.trails.map(pair => pair.map(idx => (idx - rotation + 4) % 4));
+      const houses = tile.houses.map(idx => (idx - rotation + 4) % 4);
+      return { sides, trails, houses };
+    }
+    function inBounds(x, y) {
+      return x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE;
+    }
+    function getCell(x, y) {
+      return board[y * BOARD_SIZE + x];
+    }
+    function setCell(x, y, value) {
+      board[y * BOARD_SIZE + x] = value;
+    }
+    // --- Game Setup ---
+    function initGame() {
+      board = Array(BOARD_SIZE * BOARD_SIZE).fill(null);
+      tileDeck = shuffle(
+        Array(30).fill(0).map(() => {
+          const t = TILE_TYPES[Math.floor(Math.random() * TILE_TYPES.length)];
+          return { ...t };
+        })
+      );
+      currentPlayer = 0;
+      houses = [[], []];
+      placedThisTurn = false;
+      // Place starting tile in center
+      setCell(CENTER, CENTER, { ...TILE_TYPES[0], rotation: 0 });
+      drawBoard();
+      drawTilePreview();
+      updateStatus();
+      drawHouses();
+      nextTile();
+    }
+    // --- Drawing Functions ---
+    function drawBoard() {
+      const boardDiv = document.getElementById('board');
+      boardDiv.innerHTML = '';
+      for (let y = 0; y < BOARD_SIZE; y++) {
+        for (let x = 0; x < BOARD_SIZE; x++) {
+          const cell = getCell(x, y);
+          const cellDiv = document.createElement('div');
+          cellDiv.className = 'cell' + (cell ? ' occupied' : '');
+          cellDiv.dataset.x = x;
+          cellDiv.dataset.y = y;
+          if (!cell) {
+            cellDiv.addEventListener('click', () => placeTile(x, y));
+          } else {
+            // Draw tile
+            const tile = rotateTile(cell, cell.rotation || 0);
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('width', '36');
+            svg.setAttribute('height', '36');
+            // Draw trails
+            tile.trails.forEach((pair, i) => {
+              const [a, b] = pair;
+              const color = tile.sides[a] === 'f' ? '#e57373' : '#64b5f6';
+              svg.innerHTML += trailSVG(a, b, color);
+            });
+            cellDiv.appendChild(svg);
+            // Draw houses
+            tile.houses.forEach(idx => {
+              const color = tile.sides[idx] === 'f' ? 'fairy' : 'goblin';
+              const pos = housePos(idx);
+              const houseDiv = document.createElement('div');
+              houseDiv.className = 'house ' + color;
+              houseDiv.style.left = pos.x + 'px';
+              houseDiv.style.top = pos.y + 'px';
+              cellDiv.appendChild(houseDiv);
+            });
+          }
+          boardDiv.appendChild(cellDiv);
+        }
+      }
+    }
+    function trailSVG(a, b, color) {
+      const pos = [
+        [18, 0],   // N
+        [36, 18],  // E
+        [18, 36],  // S
+        [0, 18]    // W
+      ];
+      return `<path class="trail" d="M${pos[a][0]},${pos[a][1]} Q18,18 ${pos[b][0]},${pos[b][1]}" stroke="${color}"/>`;
+    }
+    function housePos(idx) {
+      // N, E, S, W
+      const pos = [
+        { x: 13, y: 0 },
+        { x: 26, y: 13 },
+        { x: 13, y: 26 },
+        { x: 0, y: 13 }
+      ];
+      return pos[idx];
+    }
+    function drawTilePreview() {
+      const preview = document.getElementById('tile-preview');
+      if (!currentTile) {
+        preview.innerHTML = '';
+        return;
+      }
+      const tile = rotateTile(currentTile, currentRotation);
+      let html = '<b>Current Tile:</b> ';
+      html += '<svg width="36" height="36">';
+      tile.trails.forEach(pair => {
+        const [a, b] = pair;
+        const color = tile.sides[a] === 'f' ? '#e57373' : '#64b5f6';
+        html += trailSVG(a, b, color);
+      });
+      tile.houses.forEach(idx => {
+        const color = tile.sides[idx] === 'f' ? 'fairy' : 'goblin';
+        const pos = housePos(idx);
+        html += `<circle class="house ${color}" cx="${pos.x+5}" cy="${pos.y+5}" r="5" fill="${color === 'fairy' ? '#e57373' : '#64b5f6'}" stroke="${color === 'fairy' ? '#b71c1c' : '#0d47a1'}" stroke-width="2"/>`;
+      });
+      html += '</svg>';
+      preview.innerHTML = html;
+    }
+    function updateStatus(msg) {
+      const status = document.getElementById('status');
+      // Set background color based on current player
+      document.body.style.background = currentPlayer === 0 ? '#ffeaea' : '#eaf3ff';
+      if (msg) {
+        status.textContent = msg;
+        return;
+      }
+      status.textContent = `${PLAYERS[currentPlayer].name}'s turn`;
+    }
+    function drawHouses() {
+      // Not implemented: house tokens on completed trails (for simplicity, just count them)
+    }
+    // --- Game Logic ---
+    function nextTile() {
+      if (tileDeck.length === 0) {
+        endGame();
+        return;
+      }
+      currentTile = tileDeck.pop();
+      currentRotation = 0;
+      placedThisTurn = false;
+      drawTilePreview();
+      document.getElementById('end-turn-btn').disabled = true;
+    }
+    function placeTile(x, y) {
+      if (placedThisTurn) return;
+      if (getCell(x, y)) return;
+      // Must be adjacent to existing tile
+      if (!isAdjacentToTile(x, y)) {
+        updateStatus('Tile must be placed adjacent to an existing tile.');
+        return;
+      }
+      // Check that all adjacent tiles have matching path colors
+      const dirs = [ [0,-1], [1,0], [0,1], [-1,0] ]; // N, E, S, W
+      const tile = rotateTile(currentTile, currentRotation);
+      for (let i = 0; i < 4; i++) {
+        const [dx, dy] = dirs[i];
+        const nx = x + dx, ny = y + dy;
+        if (inBounds(nx, ny)) {
+          const neighbor = getCell(nx, ny);
+          if (neighbor) {
+            const neighborTile = rotateTile(neighbor, neighbor.rotation || 0);
+            // Opposite side index
+            const opp = (i + 2) % 4;
+            if (tile.sides[i] !== neighborTile.sides[opp]) {
+              updateStatus('Path colors must match adjacent tiles.');
+              return;
+            }
+          }
+        }
+      }
+      setCell(x, y, { ...currentTile, rotation: currentRotation });
+      drawBoard();
+      placedThisTurn = true;
+      document.getElementById('end-turn-btn').disabled = false;
+      checkCompletedTrails(x, y);
+    }
+    function isAdjacentToTile(x, y) {
+      const dirs = [ [0,-1], [1,0], [0,1], [-1,0] ];
+      for (const [dx, dy] of dirs) {
+        const nx = x + dx, ny = y + dy;
+        if (inBounds(nx, ny) && getCell(nx, ny)) return true;
+      }
+      return false;
+    }
+    function checkCompletedTrails(x, y) {
+      // For simplicity, only check for completed trails from the placed tile
+      // If a trail is closed, award a house to the player for each house on the closed trail
+      // (Full implementation would require pathfinding; here we do a simple check)
+      // Not fully implemented for brevity
+    }
+    function endTurn() {
+      if (!placedThisTurn) return;
+      currentPlayer = 1 - currentPlayer;
+      updateStatus();
+      nextTile();
+      drawTilePreview();
+    }
+    function endGame() {
+      // Count houses (not fully implemented)
+      updateStatus('Game over!');
+    }
+    // --- Event Listeners ---
+    document.getElementById('rotate-btn').onclick = () => {
+      currentRotation = (currentRotation + 1) % 4;
+      drawTilePreview();
+    };
+    document.getElementById('end-turn-btn').onclick = endTurn;
+    document.getElementById('restart-btn').onclick = initGame;
+    // --- Start Game ---
+    initGame();
+  </script>
+</body>
+</html>
